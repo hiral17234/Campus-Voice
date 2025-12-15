@@ -17,12 +17,13 @@ import { ArrowLeft, Megaphone, MapPin, Image, Mic, Video, AlertTriangle } from '
 
 export default function CreateIssue() {
   const { user } = useAuth();
-  const { addIssue } = useIssues();
+  const { addIssue, addCustomCategory } = useIssues();
   const navigate = useNavigate();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<IssueCategory | ''>('');
+  const [customCategory, setCustomCategory] = useState('');
   const [location, setLocation] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,15 +32,27 @@ export default function CreateIssue() {
     e.preventDefault();
     if (!user || !category) return;
 
+    // Validate custom category if "other" is selected
+    if (category === 'other' && !customCategory.trim()) {
+      toast.error('Please enter a custom category name');
+      return;
+    }
+
     setIsSubmitting(true);
 
     // Simulate network delay
     await new Promise((r) => setTimeout(r, 500));
 
+    // Add custom category to the list
+    if (category === 'other' && customCategory.trim()) {
+      addCustomCategory(customCategory.trim());
+    }
+
     addIssue({
       title,
       description,
       category,
+      customCategory: category === 'other' ? customCategory.trim() : undefined,
       location,
       authorNickname: user.nickname!,
       authorId: user.id,
@@ -151,6 +164,28 @@ export default function CreateIssue() {
                   </div>
                 </div>
 
+                {/* Custom Category Input */}
+                {category === 'other' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="space-y-2"
+                  >
+                    <Label htmlFor="customCategory">Custom Category Name *</Label>
+                    <Input
+                      id="customCategory"
+                      placeholder="Enter your custom category"
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                      required
+                      maxLength={50}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      This category will be available for future issues
+                    </p>
+                  </motion.div>
+                )}
+
                 {/* Media Upload Buttons */}
                 <div className="space-y-2">
                   <Label>Attachments (Optional)</Label>
@@ -205,7 +240,7 @@ export default function CreateIssue() {
                   <Button
                     type="submit"
                     className="flex-1 gradient-primary"
-                    disabled={isSubmitting || !title || !description || !category || !location}
+                    disabled={isSubmitting || !title || !description || !category || !location || (category === 'other' && !customCategory.trim())}
                   >
                     {isSubmitting ? 'Submitting...' : 'Submit Issue'}
                   </Button>

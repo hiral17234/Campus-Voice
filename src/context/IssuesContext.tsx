@@ -1,19 +1,15 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { Issue, Comment, IssueStatus, IssueCategory, Stats, TimelineEvent, UserStats } from '@/types';
+import { Issue, Comment, IssueStatus, IssueCategory, Stats, TimelineEvent } from '@/types';
 
 interface IssuesContextType {
   issues: Issue[];
   comments: Record<string, Comment[]>;
   stats: Stats;
-  customCategories: string[];
   addIssue: (issue: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'upvotes' | 'downvotes' | 'votedUsers' | 'timeline' | 'commentCount' | 'status'>) => void;
-  vote: (issueId: string, userId: string, voteType: 'up' | 'down') => boolean;
+  vote: (issueId: string, userId: string, voteType: 'up' | 'down') => void;
   updateStatus: (issueId: string, status: IssueStatus, note?: string, adminId?: string) => void;
   addComment: (issueId: string, comment: Omit<Comment, 'id' | 'createdAt'>) => void;
   getIssueById: (id: string) => Issue | undefined;
-  getUserStats: (userId: string) => UserStats;
-  hasVoted: (issueId: string, userId: string) => boolean;
-  addCustomCategory: (category: string) => void;
 }
 
 const IssuesContext = createContext<IssuesContextType | undefined>(undefined);
@@ -142,7 +138,7 @@ const SEED_ISSUES: Issue[] = [
 
 function calculateStats(issues: Issue[]): Stats {
   const categoryCount: Record<IssueCategory, number> = {
-    academics: 0, faculty: 0, infrastructure: 0, safety: 0, food: 0, administration: 0, other: 0
+    academics: 0, faculty: 0, infrastructure: 0, safety: 0, food: 0, administration: 0
   };
   const locationCount: Record<string, number> = {};
 
@@ -190,58 +186,13 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     return SEED_ISSUES;
   });
 
-  const [comments, setComments] = useState<Record<string, Comment[]>>(() => {
-    const stored = localStorage.getItem('campusvoice_comments');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        // Convert date strings back to Date objects
-        Object.keys(parsed).forEach(key => {
-          parsed[key] = parsed[key].map((c: any) => ({
-            ...c,
-            createdAt: new Date(c.createdAt)
-          }));
-        });
-        return parsed;
-      } catch {
-        return {};
-      }
-    }
-    return {};
-  });
-
-  const [customCategories, setCustomCategories] = useState<string[]>(() => {
-    const stored = localStorage.getItem('campusvoice_custom_categories');
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  });
-
+  const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [stats, setStats] = useState<Stats>(() => calculateStats(SEED_ISSUES));
 
   useEffect(() => {
     localStorage.setItem('campusvoice_issues', JSON.stringify(issues));
     setStats(calculateStats(issues));
   }, [issues]);
-
-  useEffect(() => {
-    localStorage.setItem('campusvoice_comments', JSON.stringify(comments));
-  }, [comments]);
-
-  useEffect(() => {
-    localStorage.setItem('campusvoice_custom_categories', JSON.stringify(customCategories));
-  }, [customCategories]);
-
-  const addCustomCategory = (category: string) => {
-    if (!customCategories.includes(category)) {
-      setCustomCategories(prev => [...prev, category]);
-    }
-  };
 
   const addIssue = (issueData: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'upvotes' | 'downvotes' | 'votedUsers' | 'timeline' | 'commentCount' | 'status'>) => {
     const now = new Date();
@@ -258,40 +209,30 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       updatedAt: now,
     };
     setIssues(prev => [newIssue, ...prev]);
-
-    // Update user stats
-    const userStatsKey = `campusvoice_userstats_${issueData.authorId}`;
-    const storedStats = localStorage.getItem(userStatsKey);
-    const userStats: UserStats = storedStats ? JSON.parse(storedStats) : { upvotesGiven: 0, downvotesGiven: 0, commentsPosted: 0, issuesCreated: 0 };
-    userStats.issuesCreated++;
-    localStorage.setItem(userStatsKey, JSON.stringify(userStats));
   };
 
-  const hasVoted = (issueId: string, userId: string): boolean => {
-    const issue = issues.find(i => i.id === issueId);
-    return issue ? userId in issue.votedUsers : false;
-  };
-
-  const vote = (issueId: string, userId: string, voteType: 'up' | 'down'): boolean => {
-    const issue = issues.find(i => i.id === issueId);
-    if (!issue) return false;
-
-    // Check if user has already voted - votes are permanent
-    if (issue.votedUsers[userId]) {
-      return false; // Already voted, cannot vote again
-    }
-
+  const vote = (issueId: string, userId: string, voteType: 'up' | 'down') => {
     setIssues(prev => prev.map(issue => {
       if (issue.id !== issueId) return issue;
 
+      const existingVote = issue.votedUsers[userId];
       let newUpvotes = issue.upvotes;
       let newDownvotes = issue.downvotes;
       const newVotedUsers = { ...issue.votedUsers };
 
-      // Add vote (permanent - cannot be changed or removed)
-      if (voteType === 'up') newUpvotes++;
-      else newDownvotes++;
-      newVotedUsers[userId] = voteType;
+      if (existingVote === voteType) {
+        // Remove vote
+        if (voteType === 'up') newUpvotes--;
+        else newDownvotes--;
+        delete newVotedUsers[userId];
+      } else {
+        // Change or add vote
+        if (existingVote === 'up') newUpvotes--;
+        if (existingVote === 'down') newDownvotes--;
+        if (voteType === 'up') newUpvotes++;
+        else newDownvotes++;
+        newVotedUsers[userId] = voteType;
+      }
 
       const netVotes = newUpvotes - newDownvotes;
       let newStatus = issue.status;
@@ -315,16 +256,6 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
         updatedAt: new Date(),
       };
     }));
-
-    // Update user stats
-    const userStatsKey = `campusvoice_userstats_${userId}`;
-    const storedStats = localStorage.getItem(userStatsKey);
-    const userStats: UserStats = storedStats ? JSON.parse(storedStats) : { upvotesGiven: 0, downvotesGiven: 0, commentsPosted: 0, issuesCreated: 0 };
-    if (voteType === 'up') userStats.upvotesGiven++;
-    else userStats.downvotesGiven++;
-    localStorage.setItem(userStatsKey, JSON.stringify(userStats));
-
-    return true;
   };
 
   const updateStatus = (issueId: string, status: IssueStatus, note?: string, adminId?: string) => {
@@ -351,38 +282,12 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     setIssues(prev => prev.map(issue => 
       issue.id === issueId ? { ...issue, commentCount: issue.commentCount + 1 } : issue
     ));
-
-    // Update user stats
-    const userStatsKey = `campusvoice_userstats_${commentData.authorId}`;
-    const storedStats = localStorage.getItem(userStatsKey);
-    const userStats: UserStats = storedStats ? JSON.parse(storedStats) : { upvotesGiven: 0, downvotesGiven: 0, commentsPosted: 0, issuesCreated: 0 };
-    userStats.commentsPosted++;
-    localStorage.setItem(userStatsKey, JSON.stringify(userStats));
   };
 
   const getIssueById = (id: string) => issues.find(i => i.id === id);
 
-  const getUserStats = (userId: string): UserStats => {
-    const userStatsKey = `campusvoice_userstats_${userId}`;
-    const storedStats = localStorage.getItem(userStatsKey);
-    return storedStats ? JSON.parse(storedStats) : { upvotesGiven: 0, downvotesGiven: 0, commentsPosted: 0, issuesCreated: 0 };
-  };
-
   return (
-    <IssuesContext.Provider value={{ 
-      issues, 
-      comments, 
-      stats, 
-      customCategories,
-      addIssue, 
-      vote, 
-      updateStatus, 
-      addComment, 
-      getIssueById, 
-      getUserStats,
-      hasVoted,
-      addCustomCategory
-    }}>
+    <IssuesContext.Provider value={{ issues, comments, stats, addIssue, vote, updateStatus, addComment, getIssueById }}>
       {children}
     </IssuesContext.Provider>
   );

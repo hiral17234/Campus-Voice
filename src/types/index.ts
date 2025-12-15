@@ -1,4 +1,4 @@
-export type UserRole = 'student' | 'faculty';
+export type UserRole = 'student' | 'admin';
 
 export type IssueCategory = 
   | 'academics' 
@@ -6,8 +6,7 @@ export type IssueCategory =
   | 'infrastructure' 
   | 'safety' 
   | 'food' 
-  | 'administration'
-  | 'other';
+  | 'administration';
 
 export type IssueStatus = 
   | 'open' 
@@ -21,7 +20,6 @@ export interface User {
   id: string;
   role: UserRole;
   nickname?: string;
-  email?: string;
   createdAt: Date;
 }
 
@@ -50,7 +48,6 @@ export interface Issue {
   title: string;
   description: string;
   category: IssueCategory;
-  customCategory?: string;
   location: string;
   authorNickname: string;
   authorId: string;
@@ -67,13 +64,6 @@ export interface Issue {
   updatedAt: Date;
 }
 
-export interface UserStats {
-  upvotesGiven: number;
-  downvotesGiven: number;
-  commentsPosted: number;
-  issuesCreated: number;
-}
-
 export interface Stats {
   totalIssues: number;
   underReview: number;
@@ -84,8 +74,7 @@ export interface Stats {
   hotspotLocations: { location: string; count: number }[];
 }
 
-export const STUDENT_CODE = 'CAMPUS2024';
-export const FACULTY_CODE = 'FACULTY2020';
+export const CAMPUS_CODE = 'CAMPUS2024';
 
 export const CATEGORY_LABELS: Record<IssueCategory, string> = {
   academics: 'Academics',
@@ -94,7 +83,6 @@ export const CATEGORY_LABELS: Record<IssueCategory, string> = {
   safety: 'Safety',
   food: 'Food',
   administration: 'Administration',
-  other: 'Other',
 };
 
 export const STATUS_LABELS: Record<IssueStatus, string> = {

@@ -13,9 +13,9 @@ import { UserRole } from '@/types';
 
 export default function Login() {
   const [role, setRole] = useState<UserRole>('student');
-  const [accessCode, setAccessCode] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [campusCode, setCampusCode] = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
@@ -25,10 +25,10 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
 
-    const success = await login(role, accessCode, email, password);
+    const success = await login(role, campusCode, adminEmail, adminPassword);
 
     if (success) {
-      toast.success(role === 'student' ? 'Welcome to CampusVoice!' : 'Faculty access granted');
+      toast.success(role === 'student' ? 'Welcome to CampusVoice!' : 'Admin access granted');
       navigate(role === 'student' ? '/feed' : '/admin');
     } else {
       toast.error(role === 'student' ? 'Invalid campus code' : 'Invalid credentials');
@@ -91,44 +91,40 @@ export default function Login() {
               </button>
               <button
                 type="button"
-                onClick={() => setRole('faculty')}
+                onClick={() => setRole('admin')}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${
-                  role === 'faculty'
+                  role === 'admin'
                     ? 'bg-card shadow-sm text-foreground'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 <Shield className="h-4 w-4" />
-                Faculty
+                Institute
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Access Code - Both roles need this */}
+              {/* Campus Code - Both roles need this */}
               <div className="space-y-2">
-                <Label htmlFor="accessCode">
-                  {role === 'student' ? 'Student Access Code' : 'Faculty Access Code'}
-                </Label>
+                <Label htmlFor="campusCode">Campus Access Code</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="accessCode"
+                    id="campusCode"
                     type="text"
-                    placeholder={`Enter ${role === 'student' ? 'campus' : 'faculty'} code`}
-                    value={accessCode}
-                    onChange={(e) => setAccessCode(e.target.value)}
+                    placeholder="Enter campus code"
+                    value={campusCode}
+                    onChange={(e) => setCampusCode(e.target.value)}
                     className="pl-10"
                     required
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Hint: {role === 'student' ? 'CAMPUS2024' : 'FACULTY2020'}
-                </p>
+                <p className="text-xs text-muted-foreground">Hint: CAMPUS2024</p>
               </div>
 
-              {/* Faculty-specific fields */}
+              {/* Admin-specific fields */}
               <AnimatePresence mode="wait">
-                {role === 'faculty' && (
+                {role === 'admin' && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
@@ -137,17 +133,17 @@ export default function Login() {
                     className="space-y-4 overflow-hidden"
                   >
                     <div className="space-y-2">
-                      <Label htmlFor="email">Faculty Email</Label>
+                      <Label htmlFor="email">Admin Email</Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="email"
                           type="email"
-                          placeholder="faculty@campus.edu"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="admin@campus.edu"
+                          value={adminEmail}
+                          onChange={(e) => setAdminEmail(e.target.value)}
                           className="pl-10"
-                          required={role === 'faculty'}
+                          required={role === 'admin'}
                         />
                       </div>
                     </div>
@@ -159,10 +155,10 @@ export default function Login() {
                           id="password"
                           type={showPassword ? 'text' : 'password'}
                           placeholder="••••••••"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
+                          value={adminPassword}
+                          onChange={(e) => setAdminPassword(e.target.value)}
                           className="pl-10 pr-10"
-                          required={role === 'faculty'}
+                          required={role === 'admin'}
                         />
                         <button
                           type="button"
@@ -172,7 +168,7 @@ export default function Login() {
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
-                      <p className="text-xs text-muted-foreground">Hint: faculty@campus.edu / faculty123</p>
+                      <p className="text-xs text-muted-foreground">Hint: admin@campus.edu / admin123</p>
                     </div>
                   </motion.div>
                 )}

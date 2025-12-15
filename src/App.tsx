@@ -15,7 +15,7 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'student' | 'faculty' }) {
+function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'student' | 'admin' }) {
   const { user, isLoading, isAuthenticated } = useAuth();
 
   if (isLoading) {
@@ -31,7 +31,7 @@ function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode;
   }
 
   if (requiredRole && user?.role !== requiredRole) {
-    return <Navigate to={user?.role === 'faculty' ? '/admin' : '/feed'} replace />;
+    return <Navigate to={user?.role === 'admin' ? '/admin' : '/feed'} replace />;
   }
 
   return <>{children}</>;
@@ -46,7 +46,7 @@ function AppRoutes() {
         path="/" 
         element={
           isAuthenticated 
-            ? <Navigate to={user?.role === 'faculty' ? '/admin' : '/feed'} replace />
+            ? <Navigate to={user?.role === 'admin' ? '/admin' : '/feed'} replace />
             : <Login />
         } 
       />
@@ -77,7 +77,7 @@ function AppRoutes() {
       <Route 
         path="/admin" 
         element={
-          <ProtectedRoute requiredRole="faculty">
+          <ProtectedRoute requiredRole="admin">
             <AdminDashboard />
           </ProtectedRoute>
         } 

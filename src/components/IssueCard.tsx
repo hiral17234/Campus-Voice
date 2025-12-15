@@ -1,14 +1,11 @@
-import { useState } from 'react';
 import { Issue } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { StatusBadge } from './StatusBadge';
 import { CategoryBadge } from './CategoryBadge';
 import { VoteButtons } from './VoteButtons';
 import { useAuth } from '@/context/AuthContext';
 import { useIssues } from '@/context/IssuesContext';
-import { MapPin, MessageSquare, Clock, AlertTriangle, BarChart2, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { MapPin, MessageSquare, Clock, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -21,13 +18,11 @@ export function IssueCard({ issue }: IssueCardProps) {
   const { user } = useAuth();
   const { vote } = useIssues();
   const navigate = useNavigate();
-  const [showStats, setShowStats] = useState(false);
 
-  const handleVote = (type: 'up' | 'down'): boolean => {
+  const handleVote = (type: 'up' | 'down') => {
     if (user) {
-      return vote(issue.id, user.id, type);
+      vote(issue.id, user.id, type);
     }
-    return false;
   };
 
   const userVote = user ? issue.votedUsers[user.id] : null;
@@ -57,57 +52,13 @@ export function IssueCard({ issue }: IssueCardProps) {
                 userVote={userVote}
                 onVote={handleVote}
               />
-              
-              {/* Stats Icon */}
-              <Popover open={showStats} onOpenChange={setShowStats}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0 mt-2 rounded-full"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowStats(!showStats);
-                    }}
-                  >
-                    <BarChart2 className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-48 p-3" onClick={(e) => e.stopPropagation()}>
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-sm">Vote Statistics</h4>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="flex items-center gap-1.5 text-success">
-                        <ThumbsUp className="h-3.5 w-3.5" />
-                        Upvotes
-                      </span>
-                      <span className="font-semibold">{issue.upvotes}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="flex items-center gap-1.5 text-destructive">
-                        <ThumbsDown className="h-3.5 w-3.5" />
-                        Downvotes
-                      </span>
-                      <span className="font-semibold">{issue.downvotes}</span>
-                    </div>
-                    <div className="pt-1 border-t border-border">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Net Score</span>
-                        <span className={`font-semibold ${netVotes > 0 ? 'text-success' : netVotes < 0 ? 'text-destructive' : ''}`}>
-                          {netVotes > 0 ? '+' : ''}{netVotes}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
             </div>
 
             {/* Content */}
             <div className="flex-1 p-4">
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="flex flex-wrap gap-2 items-center">
-                  <CategoryBadge category={issue.category} customCategory={issue.customCategory} />
+                  <CategoryBadge category={issue.category} />
                   <StatusBadge status={issue.status} />
                   {issue.isUrgent && (
                     <span className="flex items-center gap-1 text-xs text-destructive font-medium">

@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useIssues } from '@/context/IssuesContext';
@@ -22,8 +22,11 @@ import {
   User, 
   MessageSquare, 
   Send,
-  CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Image,
+  Mic,
+  Video,
+  X
 } from 'lucide-react';
 
 export default function IssueDetail() {
@@ -32,6 +35,8 @@ export default function IssueDetail() {
   const { user } = useAuth();
   const { getIssueById, vote, comments, addComment } = useIssues();
   const [newComment, setNewComment] = useState('');
+  const [mediaPreview, setMediaPreview] = useState<{ type: 'image' | 'audio' | 'video'; url: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const issue = getIssueById(id!);
   const issueComments = comments[id!] || [];
@@ -47,9 +52,41 @@ export default function IssueDetail() {
     );
   }
 
-  const handleVote = (type: 'up' | 'down') => {
+  const handleVote = (type: 'up' | 'down'): boolean => {
     if (user) {
-      vote(issue.id, user.id, type);
+      return vote(issue.id, user.id, type);
+    }
+    return false;
+  };
+
+  const handleMediaSelect = (type: 'image' | 'audio' | 'video') => {
+    // Create a mock preview for demo purposes
+    if (type === 'image') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          const url = URL.createObjectURL(file);
+          setMediaPreview({ type: 'image', url });
+        }
+      };
+      input.click();
+    } else if (type === 'video') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'video/*';
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          const url = URL.createObjectURL(file);
+          setMediaPreview({ type: 'video', url });
+        }
+      };
+      input.click();
+    } else if (type === 'audio') {
+      toast.info('Voice recording would require backend integration');
     }
   };
 
@@ -61,9 +98,12 @@ export default function IssueDetail() {
       authorNickname: user.nickname!,
       authorId: user.id,
       content: newComment.trim(),
+      mediaUrl: mediaPreview?.url,
+      mediaType: mediaPreview?.type,
     });
     
     setNewComment('');
+    setMediaPreview(null);
     toast.success('Comment added');
   };
 
@@ -116,7 +156,7 @@ export default function IssueDetail() {
                     {/* Content */}
                     <div className="flex-1">
                       <div className="flex flex-wrap gap-2 mb-3">
-                        <CategoryBadge category={issue.category} />
+                        <CategoryBadge category={issue.category} customCategory={issue.customCategory} />
                         <StatusBadge status={issue.status} />
                         {issue.isUrgent && (
                           <span className="flex items-center gap-1 text-xs text-destructive font-medium bg-destructive/10 px-2 py-1 rounded-full">
@@ -164,20 +204,80 @@ export default function IssueDetail() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Add Comment */}
-                  <div className="flex gap-3">
+                  <div className="space-y-3">
                     <Textarea
                       placeholder="Add a comment..."
                       value={newComment}
                       onChange={(e) => setNewComment(e.target.value)}
                       rows={3}
                     />
-                    <Button 
-                      onClick={handleComment} 
-                      disabled={!newComment.trim()}
-                      className="self-end"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
+                    
+                    {/* Media Preview */}
+                    {mediaPreview && (
+                      <div className="relative inline-block">
+                        {mediaPreview.type === 'image' && (
+                          <img 
+                            src={mediaPreview.url} 
+                            alt="Preview" 
+                            className="max-h-32 rounded-lg border border-border"
+                          />
+                        )}
+                        {mediaPreview.type === 'video' && (
+                          <video 
+                            src={mediaPreview.url} 
+                            className="max-h-32 rounded-lg border border-border"
+                            controls
+                          />
+                        )}
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                          onClick={() => setMediaPreview(null)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleMediaSelect('image')}
+                        >
+                          <Image className="h-4 w-4 mr-1" />
+                          Image
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleMediaSelect('video')}
+                        >
+                          <Video className="h-4 w-4 mr-1" />
+                          Video
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleMediaSelect('audio')}
+                        >
+                          <Mic className="h-4 w-4 mr-1" />
+                          Voice
+                        </Button>
+                      </div>
+                      <Button 
+                        onClick={handleComment} 
+                        disabled={!newComment.trim()}
+                      >
+                        <Send className="h-4 w-4 mr-1" />
+                        Send
+                      </Button>
+                    </div>
                   </div>
 
                   <Separator />
@@ -198,11 +298,34 @@ export default function IssueDetail() {
                             </span>
                             {comment.isAdminResponse && (
                               <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded-full">
-                                Institute Response
+                                Faculty Response
                               </span>
                             )}
                           </div>
                           <p className="text-sm">{comment.content}</p>
+                          
+                          {/* Media Preview in Comment */}
+                          {comment.mediaUrl && comment.mediaType === 'image' && (
+                            <img 
+                              src={comment.mediaUrl} 
+                              alt="Attachment" 
+                              className="mt-2 max-h-48 rounded-lg border border-border"
+                            />
+                          )}
+                          {comment.mediaUrl && comment.mediaType === 'video' && (
+                            <video 
+                              src={comment.mediaUrl} 
+                              className="mt-2 max-h-48 rounded-lg border border-border"
+                              controls
+                            />
+                          )}
+                          {comment.mediaUrl && comment.mediaType === 'audio' && (
+                            <audio 
+                              src={comment.mediaUrl} 
+                              className="mt-2 w-full"
+                              controls
+                            />
+                          )}
                         </div>
                       ))}
                     </div>

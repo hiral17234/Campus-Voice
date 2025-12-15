@@ -1,38 +1,48 @@
 import { useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useIssues } from '@/context/IssuesContext';
 import { IssueCard } from '@/components/IssueCard';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { UserProfilePanel } from '@/components/UserProfilePanel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { CATEGORY_LABELS, IssueCategory, Stats } from '@/types';
+import { CATEGORY_LABELS, IssueCategory } from '@/types';
 import { 
   Megaphone, 
   Plus, 
-  LogOut, 
   Search, 
   Flame, 
   Clock, 
   TrendingUp,
   CheckCircle,
   AlertTriangle,
-  BarChart3,
-  User
+  BarChart3
 } from 'lucide-react';
 
 type SortOption = 'hot' | 'new';
 
 export default function StudentFeed() {
-  const { user, logout } = useAuth();
-  const { issues, stats } = useIssues();
+  const { user } = useAuth();
+  const { issues, stats, customCategories } = useIssues();
   const navigate = useNavigate();
   const [sortBy, setSortBy] = useState<SortOption>('hot');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Combine default categories with custom ones
+  const allCategories = useMemo(() => {
+    const categories = { ...CATEGORY_LABELS };
+    customCategories.forEach(cat => {
+      if (!Object.values(categories).includes(cat)) {
+        // Custom categories are stored under 'other' in the Issue
+      }
+    });
+    return categories;
+  }, [customCategories]);
 
   const filteredAndSortedIssues = useMemo(() => {
     let filtered = issues;
@@ -44,13 +54,19 @@ export default function StudentFeed() {
         (issue) =>
           issue.title.toLowerCase().includes(query) ||
           issue.description.toLowerCase().includes(query) ||
-          issue.location.toLowerCase().includes(query)
+          issue.location.toLowerCase().includes(query) ||
+          (issue.customCategory && issue.customCategory.toLowerCase().includes(query))
       );
     }
 
     // Category filter
     if (categoryFilter !== 'all') {
-      filtered = filtered.filter((issue) => issue.category === categoryFilter);
+      filtered = filtered.filter((issue) => {
+        if (categoryFilter === 'other') {
+          return issue.category === 'other';
+        }
+        return issue.category === categoryFilter;
+      });
     }
 
     // Sort
@@ -63,11 +79,6 @@ export default function StudentFeed() {
     }
     return [...filtered].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }, [issues, sortBy, categoryFilter, searchQuery]);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -96,13 +107,7 @@ export default function StudentFeed() {
                 Stats
               </Button>
               <ThemeToggle />
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">{user?.nickname}</span>
-              </div>
-              <Button variant="ghost" size="icon" onClick={handleLogout}>
-                <LogOut className="h-4 w-4" />
-              </Button>
+              <UserProfilePanel />
             </div>
           </div>
         </div>
@@ -172,7 +177,7 @@ export default function StudentFeed() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Categories</SelectItem>
-                        {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+                        {Object.entries(allCategories).map(([key, label]) => (
                           <SelectItem key={key} value={key}>
                             {label}
                           </SelectItem>

@@ -1,15 +1,26 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { Issue, Comment, IssueStatus, IssueCategory, Stats, TimelineEvent } from '@/types';
+import { Issue, Comment, IssueStatus, IssueCategory, Stats, TimelineEvent, Report, ReportReason, Notification, UserActivity, IssuePriority, Department } from '@/types';
 
 interface IssuesContextType {
   issues: Issue[];
   comments: Record<string, Comment[]>;
   stats: Stats;
-  addIssue: (issue: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'upvotes' | 'downvotes' | 'votedUsers' | 'timeline' | 'commentCount' | 'status'>) => void;
+  notifications: Notification[];
+  userActivity: Record<string, UserActivity>;
+  addIssue: (issue: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'upvotes' | 'downvotes' | 'votedUsers' | 'timeline' | 'commentCount' | 'status' | 'reports' | 'reportCount' | 'isReported'>) => void;
   vote: (issueId: string, userId: string, voteType: 'up' | 'down') => void;
-  updateStatus: (issueId: string, status: IssueStatus, note?: string, adminId?: string) => void;
+  updateStatus: (issueId: string, status: IssueStatus, note?: string, adminId?: string, adminName?: string) => void;
   addComment: (issueId: string, comment: Omit<Comment, 'id' | 'createdAt'>) => void;
   getIssueById: (id: string) => Issue | undefined;
+  reportIssue: (issueId: string, userId: string, reason: ReportReason, customReason?: string) => void;
+  reportComment: (issueId: string, commentId: string, userId: string, reason: ReportReason, customReason?: string) => void;
+  deleteIssue: (issueId: string, userId: string) => boolean;
+  setIssuePriority: (issueId: string, priority: IssuePriority) => void;
+  assignDepartment: (issueId: string, department: Department, customDepartment?: string) => void;
+  markNotificationRead: (notificationId: string) => void;
+  markAllNotificationsRead: (userId: string) => void;
+  getUserActivity: (userId: string) => UserActivity;
+  addProofDocument: (issueId: string, documentUrl: string) => void;
 }
 
 const IssuesContext = createContext<IssuesContextType | undefined>(undefined);
@@ -23,97 +34,108 @@ const SEED_ISSUES: Issue[] = [
     location: 'Main Library - Ground Floor',
     authorNickname: 'SilentFox42',
     authorId: 'user1',
-    status: 'escalated',
+    status: 'in_progress',
     upvotes: 127,
     downvotes: 3,
     votedUsers: {},
     mediaUrls: [],
     mediaTypes: [],
     timeline: [
-      { id: 't1', status: 'open', timestamp: new Date('2024-01-10'), note: 'Issue reported' },
-      { id: 't2', status: 'under_review', timestamp: new Date('2024-01-12'), note: 'Reached 50 upvotes' },
-      { id: 't3', status: 'escalated', timestamp: new Date('2024-01-14'), note: 'Reached 100 upvotes - Escalated to administration' },
+      { id: 't1', status: 'pending', timestamp: new Date('2024-01-10'), note: 'Issue reported' },
+      { id: 't2', status: 'under_review', timestamp: new Date('2024-01-12'), note: 'Being reviewed by administration' },
+      { id: 't3', status: 'approved', timestamp: new Date('2024-01-13'), note: 'Issue approved for action' },
+      { id: 't4', status: 'in_progress', timestamp: new Date('2024-01-14'), note: 'Maintenance team dispatched' },
     ],
     commentCount: 24,
     isUrgent: false,
+    reports: [],
+    reportCount: 0,
+    isReported: false,
     createdAt: new Date('2024-01-10'),
     updatedAt: new Date('2024-01-14'),
   },
   {
     id: '2',
-    title: 'Unsafe lighting in parking lot B',
-    description: 'Several lights in parking lot B are out, creating dark spots that pose safety concerns, especially for students leaving late evening classes. This is a safety hazard that needs immediate attention.',
-    category: 'safety',
-    location: 'Parking Lot B',
+    title: 'Hostel water supply issues',
+    description: 'Block B hostel has been facing water supply issues for the past week. Water comes only in the morning for 2 hours and evening for 1 hour. This is affecting students daily routines.',
+    category: 'hostel',
+    location: 'Block B Hostel',
     authorNickname: 'BraveLion88',
     authorId: 'user2',
-    status: 'action_in_progress',
+    status: 'under_review',
     upvotes: 89,
     downvotes: 2,
     votedUsers: {},
     mediaUrls: [],
     mediaTypes: [],
     timeline: [
-      { id: 't1', status: 'open', timestamp: new Date('2024-01-08'), note: 'Issue reported' },
-      { id: 't2', status: 'under_review', timestamp: new Date('2024-01-09'), note: 'Marked as urgent - Safety issue' },
-      { id: 't3', status: 'action_in_progress', timestamp: new Date('2024-01-11'), note: 'Maintenance team dispatched' },
+      { id: 't1', status: 'pending', timestamp: new Date('2024-01-08'), note: 'Issue reported' },
+      { id: 't2', status: 'under_review', timestamp: new Date('2024-01-09'), note: 'Under review by Hostel department' },
     ],
     commentCount: 15,
     isUrgent: true,
+    reports: [],
+    reportCount: 0,
+    isReported: false,
     createdAt: new Date('2024-01-08'),
     updatedAt: new Date('2024-01-11'),
   },
   {
     id: '3',
-    title: 'Cafeteria food quality declining',
-    description: 'The quality of food in the main cafeteria has significantly declined over the past month. Stale bread, undercooked vegetables, and overall poor hygiene standards have been observed.',
-    category: 'food',
-    location: 'Main Cafeteria',
+    title: 'Bus timing not followed',
+    description: 'The college bus on Route 5 consistently arrives 15-20 minutes late. Students are missing their first classes regularly. The driver seems to take breaks without informing.',
+    category: 'transport',
+    location: 'Route 5 - Main Gate',
     authorNickname: 'QuickEagle55',
     authorId: 'user3',
-    status: 'under_review',
+    status: 'pending',
     upvotes: 67,
     downvotes: 12,
     votedUsers: {},
     mediaUrls: [],
     mediaTypes: [],
     timeline: [
-      { id: 't1', status: 'open', timestamp: new Date('2024-01-12'), note: 'Issue reported' },
-      { id: 't2', status: 'under_review', timestamp: new Date('2024-01-14'), note: 'Reached 50 upvotes' },
+      { id: 't1', status: 'pending', timestamp: new Date('2024-01-12'), note: 'Issue reported' },
     ],
     commentCount: 31,
     isUrgent: false,
+    reports: [],
+    reportCount: 0,
+    isReported: false,
     createdAt: new Date('2024-01-12'),
     updatedAt: new Date('2024-01-14'),
   },
   {
     id: '4',
-    title: 'Professor frequently misses classes',
-    description: 'Prof. Johnson from the Computer Science department has missed 5 classes this semester without prior notice or make-up sessions. Students are falling behind on the curriculum.',
-    category: 'faculty',
-    location: 'Computer Science Department',
+    title: 'Lab equipment outdated',
+    description: 'The computer lab equipment in CS department is severely outdated. Most computers are running Windows 7 and cannot run modern development tools required for coursework.',
+    category: 'academics',
+    location: 'Computer Science Department - Lab 3',
     authorNickname: 'WiseOwl33',
     authorId: 'user4',
-    status: 'open',
+    status: 'pending',
     upvotes: 34,
     downvotes: 8,
     votedUsers: {},
     mediaUrls: [],
     mediaTypes: [],
     timeline: [
-      { id: 't1', status: 'open', timestamp: new Date('2024-01-15'), note: 'Issue reported' },
+      { id: 't1', status: 'pending', timestamp: new Date('2024-01-15'), note: 'Issue reported' },
     ],
     commentCount: 12,
     isUrgent: false,
+    reports: [],
+    reportCount: 0,
+    isReported: false,
     createdAt: new Date('2024-01-15'),
     updatedAt: new Date('2024-01-15'),
   },
   {
     id: '5',
-    title: 'Exam schedule conflict for multiple courses',
-    description: 'The final exam schedule has conflicts where ECE 301 and CS 401 are scheduled at the same time. Over 40 students are enrolled in both courses.',
-    category: 'academics',
-    location: 'Examination Office',
+    title: 'Cultural fest registration issues',
+    description: 'The online registration portal for the upcoming cultural fest is not working. Multiple students have reported payment failures and duplicate registrations.',
+    category: 'events',
+    location: 'Student Affairs Office',
     authorNickname: 'SwiftHawk77',
     authorId: 'user5',
     status: 'resolved',
@@ -123,14 +145,17 @@ const SEED_ISSUES: Issue[] = [
     mediaUrls: [],
     mediaTypes: [],
     timeline: [
-      { id: 't1', status: 'open', timestamp: new Date('2024-01-05'), note: 'Issue reported' },
-      { id: 't2', status: 'under_review', timestamp: new Date('2024-01-05'), note: 'Reached 50 upvotes' },
-      { id: 't3', status: 'escalated', timestamp: new Date('2024-01-06'), note: 'Reached 100 upvotes' },
-      { id: 't4', status: 'action_taken', timestamp: new Date('2024-01-07'), note: 'Exam office notified' },
-      { id: 't5', status: 'resolved', timestamp: new Date('2024-01-09'), note: 'Schedule revised - ECE 301 moved to afternoon slot' },
+      { id: 't1', status: 'pending', timestamp: new Date('2024-01-05'), note: 'Issue reported' },
+      { id: 't2', status: 'under_review', timestamp: new Date('2024-01-05'), note: 'Forwarded to IT team' },
+      { id: 't3', status: 'approved', timestamp: new Date('2024-01-06'), note: 'Issue confirmed' },
+      { id: 't4', status: 'in_progress', timestamp: new Date('2024-01-07'), note: 'IT team working on fix' },
+      { id: 't5', status: 'resolved', timestamp: new Date('2024-01-09'), note: 'Portal fixed and duplicate registrations refunded' },
     ],
     commentCount: 45,
     isUrgent: false,
+    reports: [],
+    reportCount: 0,
+    isReported: false,
     createdAt: new Date('2024-01-05'),
     updatedAt: new Date('2024-01-09'),
   },
@@ -138,7 +163,7 @@ const SEED_ISSUES: Issue[] = [
 
 function calculateStats(issues: Issue[]): Stats {
   const categoryCount: Record<IssueCategory, number> = {
-    academics: 0, faculty: 0, infrastructure: 0, safety: 0, food: 0, administration: 0, other: 0
+    academics: 0, infrastructure: 0, hostel: 0, transport: 0, events: 0, other: 0
   };
   const locationCount: Record<string, number> = {};
 
@@ -159,9 +184,13 @@ function calculateStats(issues: Issue[]): Stats {
 
   return {
     totalIssues: issues.length,
+    pending: issues.filter(i => i.status === 'pending').length,
     underReview: issues.filter(i => i.status === 'under_review').length,
-    escalated: issues.filter(i => i.status === 'escalated').length,
+    approved: issues.filter(i => i.status === 'approved').length,
+    inProgress: issues.filter(i => i.status === 'in_progress').length,
     resolved: issues.filter(i => i.status === 'resolved').length,
+    rejected: issues.filter(i => i.status === 'rejected').length,
+    reported: issues.filter(i => i.isReported).length,
     avgResponseTime: 2.3,
     topCategories,
     hotspotLocations,
@@ -177,7 +206,10 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
           ...i,
           createdAt: new Date(i.createdAt),
           updatedAt: new Date(i.updatedAt),
-          timeline: i.timeline.map(t => ({ ...t, timestamp: new Date(t.timestamp) }))
+          timeline: i.timeline.map(t => ({ ...t, timestamp: new Date(t.timestamp) })),
+          reports: i.reports || [],
+          reportCount: i.reportCount || 0,
+          isReported: i.isReported || false,
         }));
       } catch {
         return SEED_ISSUES;
@@ -186,7 +218,45 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     return SEED_ISSUES;
   });
 
-  const [comments, setComments] = useState<Record<string, Comment[]>>({});
+  const [comments, setComments] = useState<Record<string, Comment[]>>(() => {
+    const stored = localStorage.getItem('campusvoice_comments');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  });
+
+  const [notifications, setNotifications] = useState<Notification[]>(() => {
+    const stored = localStorage.getItem('campusvoice_notifications');
+    if (stored) {
+      try {
+        return JSON.parse(stored).map((n: Notification) => ({
+          ...n,
+          createdAt: new Date(n.createdAt),
+        }));
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
+
+  const [userActivity, setUserActivity] = useState<Record<string, UserActivity>>(() => {
+    const stored = localStorage.getItem('campusvoice_user_activity');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  });
+
   const [stats, setStats] = useState<Stats>(() => calculateStats(SEED_ISSUES));
 
   useEffect(() => {
@@ -194,21 +264,62 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     setStats(calculateStats(issues));
   }, [issues]);
 
-  const addIssue = (issueData: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'upvotes' | 'downvotes' | 'votedUsers' | 'timeline' | 'commentCount' | 'status'>) => {
+  useEffect(() => {
+    localStorage.setItem('campusvoice_comments', JSON.stringify(comments));
+  }, [comments]);
+
+  useEffect(() => {
+    localStorage.setItem('campusvoice_notifications', JSON.stringify(notifications));
+  }, [notifications]);
+
+  useEffect(() => {
+    localStorage.setItem('campusvoice_user_activity', JSON.stringify(userActivity));
+  }, [userActivity]);
+
+  const addNotification = (userId: string, type: Notification['type'], title: string, message: string, issueId: string) => {
+    const notification: Notification = {
+      id: crypto.randomUUID(),
+      userId,
+      type,
+      title,
+      message,
+      issueId,
+      isRead: false,
+      createdAt: new Date(),
+    };
+    setNotifications(prev => [notification, ...prev]);
+  };
+
+  const updateUserActivity = (userId: string, field: keyof UserActivity, issueId: string, remove = false) => {
+    setUserActivity(prev => {
+      const activity = prev[userId] || { issuesPosted: [], issuesUpvoted: [], issuesDownvoted: [], issuesCommented: [], issuesReported: [] };
+      const currentList = activity[field];
+      const newList = remove 
+        ? currentList.filter(id => id !== issueId)
+        : currentList.includes(issueId) ? currentList : [...currentList, issueId];
+      return { ...prev, [userId]: { ...activity, [field]: newList } };
+    });
+  };
+
+  const addIssue = (issueData: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'upvotes' | 'downvotes' | 'votedUsers' | 'timeline' | 'commentCount' | 'status' | 'reports' | 'reportCount' | 'isReported'>) => {
     const now = new Date();
     const newIssue: Issue = {
       ...issueData,
       id: crypto.randomUUID(),
-      status: issueData.isUrgent && issueData.category === 'safety' ? 'under_review' : 'open',
+      status: 'pending',
       upvotes: 0,
       downvotes: 0,
       votedUsers: {},
-      timeline: [{ id: crypto.randomUUID(), status: 'open', timestamp: now, note: 'Issue reported' }],
+      timeline: [{ id: crypto.randomUUID(), status: 'pending', timestamp: now, note: 'Issue reported' }],
       commentCount: 0,
+      reports: [],
+      reportCount: 0,
+      isReported: false,
       createdAt: now,
       updatedAt: now,
     };
     setIssues(prev => [newIssue, ...prev]);
+    updateUserActivity(issueData.authorId, 'issuesPosted', newIssue.id);
   };
 
   const vote = (issueId: string, userId: string, voteType: 'up' | 'down') => {
@@ -222,28 +333,32 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
 
       if (existingVote === voteType) {
         // Remove vote
-        if (voteType === 'up') newUpvotes--;
-        else newDownvotes--;
+        if (voteType === 'up') {
+          newUpvotes--;
+          updateUserActivity(userId, 'issuesUpvoted', issueId, true);
+        } else {
+          newDownvotes--;
+          updateUserActivity(userId, 'issuesDownvoted', issueId, true);
+        }
         delete newVotedUsers[userId];
       } else {
         // Change or add vote
-        if (existingVote === 'up') newUpvotes--;
-        if (existingVote === 'down') newDownvotes--;
-        if (voteType === 'up') newUpvotes++;
-        else newDownvotes++;
+        if (existingVote === 'up') {
+          newUpvotes--;
+          updateUserActivity(userId, 'issuesUpvoted', issueId, true);
+        }
+        if (existingVote === 'down') {
+          newDownvotes--;
+          updateUserActivity(userId, 'issuesDownvoted', issueId, true);
+        }
+        if (voteType === 'up') {
+          newUpvotes++;
+          updateUserActivity(userId, 'issuesUpvoted', issueId);
+        } else {
+          newDownvotes++;
+          updateUserActivity(userId, 'issuesDownvoted', issueId);
+        }
         newVotedUsers[userId] = voteType;
-      }
-
-      const netVotes = newUpvotes - newDownvotes;
-      let newStatus = issue.status;
-      const newTimeline = [...issue.timeline];
-
-      if (issue.status === 'open' && netVotes >= 50) {
-        newStatus = 'under_review';
-        newTimeline.push({ id: crypto.randomUUID(), status: 'under_review', timestamp: new Date(), note: 'Reached 50 upvotes - Under review' });
-      } else if (issue.status === 'under_review' && netVotes >= 100) {
-        newStatus = 'escalated';
-        newTimeline.push({ id: crypto.randomUUID(), status: 'escalated', timestamp: new Date(), note: 'Reached 100 upvotes - Escalated to administration' });
       }
 
       return {
@@ -251,20 +366,28 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
         upvotes: newUpvotes,
         downvotes: newDownvotes,
         votedUsers: newVotedUsers,
-        status: newStatus,
-        timeline: newTimeline,
         updatedAt: new Date(),
       };
     }));
   };
 
-  const updateStatus = (issueId: string, status: IssueStatus, note?: string, adminId?: string) => {
+  const updateStatus = (issueId: string, status: IssueStatus, note?: string, adminId?: string, adminName?: string) => {
     setIssues(prev => prev.map(issue => {
       if (issue.id !== issueId) return issue;
       const newTimeline: TimelineEvent[] = [
         ...issue.timeline,
-        { id: crypto.randomUUID(), status, timestamp: new Date(), note, adminId }
+        { id: crypto.randomUUID(), status, timestamp: new Date(), note, adminId, adminName }
       ];
+      
+      // Send notification to issue author
+      addNotification(
+        issue.authorId,
+        status === 'resolved' ? 'issue_resolved' : 'status_change',
+        `Issue ${status === 'resolved' ? 'Resolved' : 'Updated'}`,
+        `Your issue "${issue.title}" status changed to ${status}`,
+        issueId
+      );
+
       return { ...issue, status, timeline: newTimeline, updatedAt: new Date() };
     }));
   };
@@ -274,20 +397,151 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       ...commentData,
       id: crypto.randomUUID(),
       createdAt: new Date(),
+      reports: [],
     };
     setComments(prev => ({
       ...prev,
       [issueId]: [...(prev[issueId] || []), newComment]
     }));
-    setIssues(prev => prev.map(issue => 
-      issue.id === issueId ? { ...issue, commentCount: issue.commentCount + 1 } : issue
-    ));
+    setIssues(prev => prev.map(issue => {
+      if (issue.id !== issueId) return issue;
+      
+      // Send notification if faculty comment
+      if (commentData.isAdminResponse && issue.authorId !== commentData.authorId) {
+        addNotification(
+          issue.authorId,
+          'faculty_comment',
+          'Faculty Response',
+          `Faculty responded to your issue "${issue.title}"`,
+          issueId
+        );
+      }
+      
+      return { ...issue, commentCount: issue.commentCount + 1 };
+    }));
+    updateUserActivity(commentData.authorId, 'issuesCommented', issueId);
   };
 
   const getIssueById = (id: string) => issues.find(i => i.id === id);
 
+  const reportIssue = (issueId: string, userId: string, reason: ReportReason, customReason?: string) => {
+    setIssues(prev => prev.map(issue => {
+      if (issue.id !== issueId) return issue;
+      
+      // Check if user already reported
+      if (issue.reports.some(r => r.reporterId === userId)) return issue;
+
+      const newReport: Report = {
+        id: crypto.randomUUID(),
+        reporterId: userId,
+        reason,
+        customReason,
+        createdAt: new Date(),
+      };
+
+      const newReportCount = issue.reportCount + 1;
+      
+      return {
+        ...issue,
+        reports: [...issue.reports, newReport],
+        reportCount: newReportCount,
+        isReported: newReportCount >= 10,
+        updatedAt: new Date(),
+      };
+    }));
+    updateUserActivity(userId, 'issuesReported', issueId);
+  };
+
+  const reportComment = (issueId: string, commentId: string, userId: string, reason: ReportReason, customReason?: string) => {
+    setComments(prev => ({
+      ...prev,
+      [issueId]: (prev[issueId] || []).map(comment => {
+        if (comment.id !== commentId) return comment;
+        if (comment.reports?.some(r => r.reporterId === userId)) return comment;
+
+        const newReport: Report = {
+          id: crypto.randomUUID(),
+          reporterId: userId,
+          reason,
+          customReason,
+          createdAt: new Date(),
+        };
+
+        return {
+          ...comment,
+          reports: [...(comment.reports || []), newReport],
+        };
+      })
+    }));
+  };
+
+  const deleteIssue = (issueId: string, userId: string): boolean => {
+    const issue = issues.find(i => i.id === issueId);
+    if (!issue || issue.authorId !== userId || issue.status !== 'pending') {
+      return false;
+    }
+    setIssues(prev => prev.filter(i => i.id !== issueId));
+    return true;
+  };
+
+  const setIssuePriority = (issueId: string, priority: IssuePriority) => {
+    setIssues(prev => prev.map(issue => 
+      issue.id === issueId ? { ...issue, priority, updatedAt: new Date() } : issue
+    ));
+  };
+
+  const assignDepartment = (issueId: string, department: Department, customDepartment?: string) => {
+    setIssues(prev => prev.map(issue => 
+      issue.id === issueId ? { ...issue, assignedDepartment: department, customDepartment, updatedAt: new Date() } : issue
+    ));
+  };
+
+  const markNotificationRead = (notificationId: string) => {
+    setNotifications(prev => prev.map(n => 
+      n.id === notificationId ? { ...n, isRead: true } : n
+    ));
+  };
+
+  const markAllNotificationsRead = (userId: string) => {
+    setNotifications(prev => prev.map(n => 
+      n.userId === userId ? { ...n, isRead: true } : n
+    ));
+  };
+
+  const getUserActivity = (userId: string): UserActivity => {
+    return userActivity[userId] || { issuesPosted: [], issuesUpvoted: [], issuesDownvoted: [], issuesCommented: [], issuesReported: [] };
+  };
+
+  const addProofDocument = (issueId: string, documentUrl: string) => {
+    setIssues(prev => prev.map(issue => 
+      issue.id === issueId 
+        ? { ...issue, proofDocuments: [...(issue.proofDocuments || []), documentUrl], updatedAt: new Date() } 
+        : issue
+    ));
+  };
+
   return (
-    <IssuesContext.Provider value={{ issues, comments, stats, addIssue, vote, updateStatus, addComment, getIssueById }}>
+    <IssuesContext.Provider value={{ 
+      issues, 
+      comments, 
+      stats, 
+      notifications,
+      userActivity,
+      addIssue, 
+      vote, 
+      updateStatus, 
+      addComment, 
+      getIssueById,
+      reportIssue,
+      reportComment,
+      deleteIssue,
+      setIssuePriority,
+      assignDepartment,
+      markNotificationRead,
+      markAllNotificationsRead,
+      getUserActivity,
+      addProofDocument,
+    }}>
       {children}
     </IssuesContext.Provider>
   );

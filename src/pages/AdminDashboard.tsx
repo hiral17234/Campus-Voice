@@ -79,9 +79,9 @@ export default function AdminDashboard() {
 
   const statCards = [
     { label: 'Total Issues', value: stats.totalIssues, icon: BarChart3, color: 'text-foreground' },
-    { label: 'Under Review', value: stats.underReview, icon: Clock, color: 'text-warning' },
-    { label: 'Escalated', value: stats.escalated, icon: AlertTriangle, color: 'text-destructive' },
-    { label: 'Resolved', value: stats.resolved, icon: CheckCircle, color: 'text-success' },
+    { label: 'Under Review', value: stats.underReview, icon: Clock, color: 'text-blue-500' },
+    { label: 'In Progress', value: stats.inProgress, icon: AlertTriangle, color: 'text-orange-500' },
+    { label: 'Resolved', value: stats.resolved, icon: CheckCircle, color: 'text-green-500' },
   ];
 
   return (

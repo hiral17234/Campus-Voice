@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, UserRole, generateNickname, CAMPUS_CODE } from '@/types';
+import { User, UserRole, generateNickname, CAMPUS_CODE, FACULTY_CODE } from '@/types';
 
 interface AuthContextType {
   user: User | null;
@@ -12,7 +12,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const ADMIN_CREDENTIALS = {
-  email: 'admin@campus.edu',
+  email: 'admin@institute.edu',
   password: 'admin123'
 };
 
@@ -34,11 +34,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (role: UserRole, campusCode: string, adminEmail?: string, adminPassword?: string): Promise<boolean> => {
-    if (campusCode !== CAMPUS_CODE) {
-      return false;
+    // Student login with CAMPUS2024
+    if (role === 'student') {
+      if (campusCode !== CAMPUS_CODE) {
+        return false;
+      }
     }
 
+    // Admin/Faculty login with MITS2025 + credentials
     if (role === 'admin') {
+      if (campusCode !== FACULTY_CODE) {
+        return false;
+      }
       if (adminEmail !== ADMIN_CREDENTIALS.email || adminPassword !== ADMIN_CREDENTIALS.password) {
         return false;
       }
@@ -46,8 +53,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const newUser: User = {
       id: crypto.randomUUID(),
+      email: role === 'admin' ? adminEmail : undefined,
       role,
-      nickname: role === 'student' ? generateNickname() : 'Administrator',
+      nickname: role === 'student' ? generateNickname() : 'Faculty',
       createdAt: new Date(),
     };
 

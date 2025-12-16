@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 import { STATUS_LABELS } from '@/types';
 import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'sonner';
@@ -22,8 +23,9 @@ import {
   User, 
   MessageSquare, 
   Send,
-  CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Flag,
+  Shield
 } from 'lucide-react';
 
 export default function IssueDetail() {
@@ -61,6 +63,7 @@ export default function IssueDetail() {
       authorNickname: user.nickname!,
       authorId: user.id,
       content: newComment.trim(),
+      isAdminResponse: user.role === 'admin',
     });
     
     setNewComment('');
@@ -68,6 +71,17 @@ export default function IssueDetail() {
   };
 
   const userVote = user ? issue.votedUsers[user.id] : null;
+
+  const getTimelineColor = (status: string) => {
+    switch (status) {
+      case 'resolved': return 'bg-green-500';
+      case 'rejected': return 'bg-red-500';
+      case 'in_progress': return 'bg-orange-500';
+      case 'approved': return 'bg-purple-500';
+      case 'under_review': return 'bg-blue-500';
+      default: return 'bg-muted-foreground';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -100,7 +114,13 @@ export default function IssueDetail() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <Card className="glass-card">
+              <Card className={`glass-card ${issue.isReported ? 'border-red-500 border-2' : ''}`}>
+                {issue.isReported && (
+                  <div className="bg-red-500/10 text-red-600 dark:text-red-400 px-4 py-2 text-sm flex items-center gap-2">
+                    <Flag className="h-4 w-4" />
+                    This issue has been reported multiple times
+                  </div>
+                )}
                 <CardContent className="p-6">
                   <div className="flex gap-4">
                     {/* Vote Column */}
@@ -123,6 +143,11 @@ export default function IssueDetail() {
                             <AlertTriangle className="h-3 w-3" />
                             Urgent
                           </span>
+                        )}
+                        {issue.priority && (
+                          <Badge variant="outline" className="text-xs">
+                            Priority: {issue.priority}
+                          </Badge>
                         )}
                       </div>
 
@@ -190,17 +215,21 @@ export default function IssueDetail() {
                   ) : (
                     <div className="space-y-4">
                       {issueComments.map((comment) => (
-                        <div key={comment.id} className="p-4 rounded-lg bg-muted/50">
+                        <div key={comment.id} className={`p-4 rounded-lg ${comment.isAdminResponse ? 'bg-primary/10 border border-primary/20' : 'bg-muted/50'}`}>
                           <div className="flex items-center gap-2 mb-2">
                             <span className="font-medium text-sm">{comment.authorNickname}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(comment.createdAt, { addSuffix: true })}
-                            </span>
                             {comment.isAdminResponse && (
-                              <span className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded-full">
-                                Institute Response
-                              </span>
+                              <Badge variant="default" className="text-xs flex items-center gap-1">
+                                <Shield className="h-3 w-3" />
+                                Official Response
+                              </Badge>
                             )}
+                            <Badge variant="outline" className="text-xs">
+                              {comment.isAdminResponse ? 'Faculty' : 'Student'}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                            </span>
                           </div>
                           <p className="text-sm">{comment.content}</p>
                         </div>
@@ -228,12 +257,7 @@ export default function IssueDetail() {
                     {issue.timeline.map((event, index) => (
                       <div key={event.id} className="flex gap-3 pb-4 last:pb-0">
                         <div className="flex flex-col items-center">
-                          <div className={`w-3 h-3 rounded-full ${
-                            event.status === 'resolved' ? 'bg-success' :
-                            event.status === 'escalated' ? 'bg-destructive' :
-                            event.status === 'under_review' ? 'bg-warning' :
-                            'bg-primary'
-                          }`} />
+                          <div className={`w-3 h-3 rounded-full ${getTimelineColor(event.status)}`} />
                           {index < issue.timeline.length - 1 && (
                             <div className="w-0.5 flex-1 bg-border mt-1" />
                           )}
@@ -242,6 +266,9 @@ export default function IssueDetail() {
                           <p className="font-medium text-sm">{STATUS_LABELS[event.status]}</p>
                           {event.note && (
                             <p className="text-xs text-muted-foreground mt-0.5">{event.note}</p>
+                          )}
+                          {event.adminName && (
+                            <p className="text-xs text-primary mt-0.5">By: {event.adminName}</p>
                           )}
                           <p className="text-xs text-muted-foreground mt-1">
                             {format(event.timestamp, 'MMM d, yyyy h:mm a')}

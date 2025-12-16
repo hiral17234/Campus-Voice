@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { CATEGORY_LABELS, IssueCategory } from '@/types';
 import { toast } from 'sonner';
-import { ArrowLeft, Megaphone, MapPin, Image, Mic, Video, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Megaphone, MapPin, Image, Mic, Video, AlertTriangle, FileText } from 'lucide-react';
 
 export default function CreateIssue() {
   const { user } = useAuth();
@@ -45,7 +45,7 @@ export default function CreateIssue() {
       authorId: user.id,
       mediaUrls: [],
       mediaTypes: [],
-      isUrgent: isUrgent && category === 'safety',
+      isUrgent,
     });
 
     toast.success('Issue reported successfully!');
@@ -160,12 +160,12 @@ export default function CreateIssue() {
                       Add Image
                     </Button>
                     <Button type="button" variant="outline" size="sm" disabled>
-                      <Mic className="h-4 w-4 mr-2" />
-                      Voice Note
+                      <FileText className="h-4 w-4 mr-2" />
+                      Add PDF
                     </Button>
                     <Button type="button" variant="outline" size="sm" disabled>
                       <Video className="h-4 w-4 mr-2" />
-                      Video
+                      Video (&lt;20MB)
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -173,25 +173,23 @@ export default function CreateIssue() {
                   </p>
                 </div>
 
-                {/* Urgent Toggle - Only for Safety */}
-                {category === 'safety' && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="flex items-center justify-between p-4 rounded-lg bg-destructive/10 border border-destructive/20"
-                  >
-                    <div className="flex items-center gap-3">
-                      <AlertTriangle className="h-5 w-5 text-destructive" />
-                      <div>
-                        <p className="font-medium text-sm">Mark as Urgent</p>
-                        <p className="text-xs text-muted-foreground">
-                          Urgent issues bypass voting and escalate immediately
-                        </p>
-                      </div>
+                {/* Urgent Toggle */}
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="flex items-center justify-between p-4 rounded-lg bg-destructive/10 border border-destructive/20"
+                >
+                  <div className="flex items-center gap-3">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    <div>
+                      <p className="font-medium text-sm">Mark as Urgent</p>
+                      <p className="text-xs text-muted-foreground">
+                        Mark if this issue needs immediate attention
+                      </p>
                     </div>
-                    <Switch checked={isUrgent} onCheckedChange={setIsUrgent} />
-                  </motion.div>
-                )}
+                  </div>
+                  <Switch checked={isUrgent} onCheckedChange={setIsUrgent} />
+                </motion.div>
 
                 <div className="flex gap-3">
                   <Button

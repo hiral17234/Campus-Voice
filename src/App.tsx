@@ -11,6 +11,8 @@ import CreateIssue from "./pages/CreateIssue";
 import IssueDetail from "./pages/IssueDetail";
 import AdminDashboard from "./pages/AdminDashboard";
 import PublicStats from "./pages/PublicStats";
+import Profile from "./pages/Profile";
+import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -87,6 +89,22 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <PublicStats />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/profile" 
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/notifications" 
+        element={
+          <ProtectedRoute>
+            <Notifications />
           </ProtectedRoute>
         } 
       />

@@ -5,14 +5,18 @@ import { useAuth } from '@/context/AuthContext';
 import { useIssues } from '@/context/IssuesContext';
 import { StatusBadge } from '@/components/StatusBadge';
 import { CategoryBadge } from '@/components/CategoryBadge';
+import { PriorityBadge } from '@/components/PriorityBadge';
 import { VoteButtons } from '@/components/VoteButtons';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ReportModal } from '@/components/ReportModal';
+import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { STATUS_LABELS } from '@/types';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { STATUS_LABELS, DEPARTMENT_LABELS, ReportReason } from '@/types';
 import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'sonner';
 import { 
@@ -25,15 +29,22 @@ import {
   Send,
   AlertTriangle,
   Flag,
-  Shield
+  Shield,
+  Trash2,
+  Info,
+  Building2
 } from 'lucide-react';
 
 export default function IssueDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { getIssueById, vote, comments, addComment } = useIssues();
+  const { getIssueById, vote, comments, addComment, reportIssue, reportComment, deleteIssue } = useIssues();
   const [newComment, setNewComment] = useState('');
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportingCommentId, setReportingCommentId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showVoteInfo, setShowVoteInfo] = useState(false);
 
   const issue = getIssueById(id!);
   const issueComments = comments[id!] || [];
@@ -70,7 +81,35 @@ export default function IssueDetail() {
     toast.success('Comment added');
   };
 
+  const handleReportIssue = (reason: ReportReason, customReason?: string) => {
+    if (user) {
+      reportIssue(issue.id, user.id, reason, customReason);
+    }
+  };
+
+  const handleReportComment = (reason: ReportReason, customReason?: string) => {
+    if (user && reportingCommentId) {
+      reportComment(issue.id, reportingCommentId, user.id, reason, customReason);
+      setReportingCommentId(null);
+    }
+  };
+
+  const handleDelete = () => {
+    if (user) {
+      const success = deleteIssue(issue.id, user.id);
+      if (success) {
+        toast.success('Issue deleted successfully');
+        navigate('/feed');
+      } else {
+        toast.error('Cannot delete this issue');
+      }
+    }
+    setShowDeleteModal(false);
+  };
+
   const userVote = user ? issue.votedUsers[user.id] : null;
+  const canDelete = user && issue.authorId === user.id && issue.status === 'pending';
+  const hasUserReported = user && issue.reports.some(r => r.reporterId === user.id);
 
   const getTimelineColor = (status: string) => {
     switch (status) {
@@ -101,7 +140,29 @@ export default function IssueDetail() {
                 <p className="text-xs text-muted-foreground">View and discuss</p>
               </div>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              {!hasUserReported && user && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowReportModal(true)}
+                  className="text-muted-foreground hover:text-red-500"
+                >
+                  <Flag className="h-4 w-4" />
+                </Button>
+              )}
+              {canDelete && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowDeleteModal(true)}
+                  className="text-muted-foreground hover:text-red-500"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </header>
@@ -131,6 +192,24 @@ export default function IssueDetail() {
                         userVote={userVote}
                         onVote={handleVote}
                       />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="mt-2 text-muted-foreground"
+                            onClick={() => setShowVoteInfo(!showVoteInfo)}
+                          >
+                            <Info className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="text-xs">
+                            <p className="text-green-500">↑ {issue.upvotes} upvotes</p>
+                            <p className="text-red-500">↓ {issue.downvotes} downvotes</p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
 
                     {/* Content */}
@@ -144,9 +223,11 @@ export default function IssueDetail() {
                             Urgent
                           </span>
                         )}
-                        {issue.priority && (
-                          <Badge variant="outline" className="text-xs">
-                            Priority: {issue.priority}
+                        {issue.priority && <PriorityBadge priority={issue.priority} />}
+                        {issue.assignedDepartment && (
+                          <Badge variant="outline" className="text-xs flex items-center gap-1">
+                            <Building2 className="h-3 w-3" />
+                            {DEPARTMENT_LABELS[issue.assignedDepartment] || issue.customDepartment}
                           </Badge>
                         )}
                       </div>
@@ -214,26 +295,41 @@ export default function IssueDetail() {
                     </p>
                   ) : (
                     <div className="space-y-4">
-                      {issueComments.map((comment) => (
-                        <div key={comment.id} className={`p-4 rounded-lg ${comment.isAdminResponse ? 'bg-primary/10 border border-primary/20' : 'bg-muted/50'}`}>
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="font-medium text-sm">{comment.authorNickname}</span>
-                            {comment.isAdminResponse && (
-                              <Badge variant="default" className="text-xs flex items-center gap-1">
-                                <Shield className="h-3 w-3" />
-                                Official Response
-                              </Badge>
-                            )}
-                            <Badge variant="outline" className="text-xs">
-                              {comment.isAdminResponse ? 'Faculty' : 'Student'}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
-                            </span>
+                      {issueComments.map((comment) => {
+                        const hasReportedComment = user && comment.reports?.some(r => r.reporterId === user.id);
+                        return (
+                          <div key={comment.id} className={`p-4 rounded-lg ${comment.isAdminResponse ? 'bg-primary/10 border border-primary/20' : 'bg-muted/50'}`}>
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-medium text-sm">{comment.authorNickname}</span>
+                                {comment.isAdminResponse && (
+                                  <Badge variant="default" className="text-xs flex items-center gap-1">
+                                    <Shield className="h-3 w-3" />
+                                    Official Response
+                                  </Badge>
+                                )}
+                                <Badge variant="outline" className="text-xs">
+                                  {comment.isAdminResponse ? 'Faculty' : 'Student'}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                                </span>
+                              </div>
+                              {!hasReportedComment && user && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-red-500"
+                                  onClick={() => setReportingCommentId(comment.id)}
+                                >
+                                  <Flag className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                            <p className="text-sm">{comment.content}</p>
                           </div>
-                          <p className="text-sm">{comment.content}</p>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </CardContent>
@@ -263,7 +359,7 @@ export default function IssueDetail() {
                           )}
                         </div>
                         <div className="flex-1 pb-2">
-                          <p className="font-medium text-sm">{STATUS_LABELS[event.status]}</p>
+                          <p className="font-medium text-sm">{STATUS_LABELS[event.status] || event.status}</p>
                           {event.note && (
                             <p className="text-xs text-muted-foreground mt-0.5">{event.note}</p>
                           )}
@@ -283,6 +379,31 @@ export default function IssueDetail() {
           </div>
         </div>
       </main>
+
+      {/* Report Issue Modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        onReport={handleReportIssue}
+        type="issue"
+      />
+
+      {/* Report Comment Modal */}
+      <ReportModal
+        isOpen={!!reportingCommentId}
+        onClose={() => setReportingCommentId(null)}
+        onReport={handleReportComment}
+        type="comment"
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        title="Delete Issue"
+        description="Are you sure you want to delete this issue? This action cannot be undone."
+      />
     </div>
   );
 }

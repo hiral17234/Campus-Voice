@@ -2,10 +2,11 @@ import { Issue } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { StatusBadge } from './StatusBadge';
 import { CategoryBadge } from './CategoryBadge';
+import { PriorityBadge } from './PriorityBadge';
 import { VoteButtons } from './VoteButtons';
 import { useAuth } from '@/context/AuthContext';
 import { useIssues } from '@/context/IssuesContext';
-import { MapPin, MessageSquare, Clock, AlertTriangle } from 'lucide-react';
+import { MapPin, MessageSquare, Clock, AlertTriangle, Flag } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -60,10 +61,17 @@ export function IssueCard({ issue }: IssueCardProps) {
                 <div className="flex flex-wrap gap-2 items-center">
                   <CategoryBadge category={issue.category} />
                   <StatusBadge status={issue.status} />
+                  {issue.priority && <PriorityBadge priority={issue.priority} />}
                   {issue.isUrgent && (
                     <span className="flex items-center gap-1 text-xs text-destructive font-medium">
                       <AlertTriangle className="h-3 w-3" />
                       Urgent
+                    </span>
+                  )}
+                  {issue.isReported && (
+                    <span className="flex items-center gap-1 text-xs text-red-500 font-medium">
+                      <Flag className="h-3 w-3" />
+                      Reported
                     </span>
                   )}
                 </div>

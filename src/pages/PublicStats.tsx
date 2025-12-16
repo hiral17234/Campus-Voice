@@ -5,7 +5,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { CATEGORY_LABELS } from '@/types';
+import { CATEGORY_LABELS, IssueStatus } from '@/types';
 import {
   ArrowLeft,
   Megaphone,
@@ -15,7 +15,8 @@ import {
   Clock,
   BarChart3,
   MapPin,
-  Timer
+  Timer,
+  XCircle
 } from 'lucide-react';
 
 export default function PublicStats() {
@@ -28,9 +29,9 @@ export default function PublicStats() {
 
   const statCards = [
     { label: 'Total Issues Raised', value: stats.totalIssues, icon: BarChart3, color: 'bg-primary/10 text-primary' },
-    { label: 'Under Review', value: stats.underReview, icon: Clock, color: 'bg-warning/10 text-warning' },
-    { label: 'Escalated', value: stats.escalated, icon: AlertTriangle, color: 'bg-destructive/10 text-destructive' },
-    { label: 'Resolved', value: stats.resolved, icon: CheckCircle, color: 'bg-success/10 text-success' },
+    { label: 'Under Review', value: stats.underReview, icon: Clock, color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400' },
+    { label: 'Reported', value: stats.reported, icon: AlertTriangle, color: 'bg-red-500/10 text-red-600 dark:text-red-400' },
+    { label: 'Resolved', value: stats.resolved, icon: CheckCircle, color: 'bg-green-500/10 text-green-600 dark:text-green-400' },
   ];
 
   return (
@@ -89,13 +90,13 @@ export default function PublicStats() {
             <Card className="glass-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-success" />
+                  <TrendingUp className="h-5 w-5 text-green-500" />
                   Resolution Rate
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-center mb-4">
-                  <span className="text-5xl font-bold text-success">{resolutionRate}%</span>
+                  <span className="text-5xl font-bold text-green-500">{resolutionRate}%</span>
                   <p className="text-sm text-muted-foreground mt-2">of issues have been resolved</p>
                 </div>
                 <Progress value={resolutionRate} className="h-3" />
@@ -112,13 +113,13 @@ export default function PublicStats() {
             <Card className="glass-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Timer className="h-5 w-5 text-accent" />
+                  <Timer className="h-5 w-5 text-primary" />
                   Average Response Time
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-center">
-                  <span className="text-5xl font-bold text-accent">{stats.avgResponseTime}</span>
+                  <span className="text-5xl font-bold text-primary">{stats.avgResponseTime}</span>
                   <span className="text-2xl text-muted-foreground ml-2">days</span>
                   <p className="text-sm text-muted-foreground mt-2">from report to first response</p>
                 </div>
@@ -167,7 +168,7 @@ export default function PublicStats() {
             <Card className="glass-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-destructive" />
+                  <MapPin className="h-5 w-5 text-red-500" />
                   Problem Hotspots
                 </CardTitle>
               </CardHeader>
@@ -176,8 +177,8 @@ export default function PublicStats() {
                   {stats.hotspotLocations.map((loc, index) => (
                     <div key={loc.location} className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                        index === 0 ? 'bg-destructive/20 text-destructive' :
-                        index === 1 ? 'bg-warning/20 text-warning' :
+                        index === 0 ? 'bg-red-500/20 text-red-500' :
+                        index === 1 ? 'bg-orange-500/20 text-orange-500' :
                         'bg-muted text-muted-foreground'
                       }`}>
                         {index + 1}

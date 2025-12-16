@@ -3,11 +3,10 @@ import { IssueCategory, CATEGORY_LABELS } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { 
   GraduationCap, 
-  Users, 
   Building2, 
-  Shield, 
-  UtensilsCrossed, 
-  Landmark,
+  Home,
+  Bus,
+  Calendar,
   HelpCircle
 } from 'lucide-react';
 
@@ -18,12 +17,11 @@ interface CategoryBadgeProps {
 }
 
 const categoryConfig: Record<IssueCategory, { icon: typeof GraduationCap; className: string }> = {
-  academics: { icon: GraduationCap, className: 'bg-accent/20 text-accent-foreground' },
-  faculty: { icon: Users, className: 'bg-primary/20 text-primary-foreground' },
-  infrastructure: { icon: Building2, className: 'bg-secondary/20 text-secondary-foreground' },
-  safety: { icon: Shield, className: 'bg-destructive/20 text-destructive' },
-  food: { icon: UtensilsCrossed, className: 'bg-success/20 text-success' },
-  administration: { icon: Landmark, className: 'bg-warning/20 text-warning-foreground' },
+  academics: { icon: GraduationCap, className: 'bg-primary/20 text-primary' },
+  infrastructure: { icon: Building2, className: 'bg-blue-500/20 text-blue-600 dark:text-blue-400' },
+  hostel: { icon: Home, className: 'bg-purple-500/20 text-purple-600 dark:text-purple-400' },
+  transport: { icon: Bus, className: 'bg-orange-500/20 text-orange-600 dark:text-orange-400' },
+  events: { icon: Calendar, className: 'bg-pink-500/20 text-pink-600 dark:text-pink-400' },
   other: { icon: HelpCircle, className: 'bg-muted text-muted-foreground' },
 };
 

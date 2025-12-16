@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useIssues } from '@/context/IssuesContext';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { CATEGORY_LABELS, IssueCategory, Stats } from '@/types';
+import { CATEGORY_LABELS, IssueCategory, IssueStatus, STATUS_LABELS } from '@/types';
 import { 
   Megaphone, 
   Plus, 
@@ -21,21 +21,28 @@ import {
   CheckCircle,
   AlertTriangle,
   BarChart3,
-  User
+  User,
+  Bell,
+  BookOpen,
+  Zap,
+  Sparkles
 } from 'lucide-react';
 
 type SortOption = 'hot' | 'new';
 
 export default function StudentFeed() {
   const { user, logout } = useAuth();
-  const { issues, stats } = useIssues();
+  const { issues, stats, notifications } = useIssues();
   const navigate = useNavigate();
   const [sortBy, setSortBy] = useState<SortOption>('hot');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const unreadNotifications = notifications.filter(n => n.userId === user?.id && !n.isRead).length;
+
   const filteredAndSortedIssues = useMemo(() => {
-    let filtered = issues;
+    let filtered = issues.filter(i => !i.isReported); // Hide reported issues from main feed
 
     // Search filter
     if (searchQuery) {
@@ -53,6 +60,11 @@ export default function StudentFeed() {
       filtered = filtered.filter((issue) => issue.category === categoryFilter);
     }
 
+    // Status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((issue) => issue.status === statusFilter);
+    }
+
     // Sort
     if (sortBy === 'hot') {
       return [...filtered].sort((a, b) => {
@@ -62,12 +74,19 @@ export default function StudentFeed() {
       });
     }
     return [...filtered].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  }, [issues, sortBy, categoryFilter, searchQuery]);
+  }, [issues, sortBy, categoryFilter, statusFilter, searchQuery]);
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
+
+  const statCards = [
+    { label: 'Total Issues', value: stats.totalIssues, icon: BarChart3, color: 'text-foreground', status: 'all' as const },
+    { label: 'Under Review', value: stats.underReview, icon: Clock, color: 'text-blue-500', status: 'under_review' as IssueStatus },
+    { label: 'In Progress', value: stats.inProgress, icon: TrendingUp, color: 'text-orange-500', status: 'in_progress' as IssueStatus },
+    { label: 'Resolved', value: stats.resolved, icon: CheckCircle, color: 'text-green-500', status: 'resolved' as IssueStatus },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -89,6 +108,19 @@ export default function StudentFeed() {
               <Button
                 variant="ghost"
                 size="sm"
+                onClick={() => navigate('/notifications')}
+                className="relative"
+              >
+                <Bell className="h-4 w-4" />
+                {unreadNotifications > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {unreadNotifications}
+                  </span>
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => navigate('/stats')}
                 className="hidden sm:flex"
               >
@@ -96,10 +128,15 @@ export default function StudentFeed() {
                 Stats
               </Button>
               <ThemeToggle />
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/profile')}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted"
+              >
                 <User className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">{user?.nickname}</span>
-              </div>
+              </Button>
               <Button variant="ghost" size="icon" onClick={handleLogout}>
                 <LogOut className="h-4 w-4" />
               </Button>
@@ -110,33 +147,31 @@ export default function StudentFeed() {
 
       <main className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar - Stats */}
+          {/* Sidebar */}
           <aside className="lg:col-span-1 space-y-4">
+            {/* Interactive Stats Cards */}
             <Card className="glass-card">
               <CardContent className="p-4">
                 <h3 className="font-semibold mb-3 flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-primary" />
                   Quick Stats
                 </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Total Issues</span>
-                    <span className="font-semibold">{stats.totalIssues}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3 text-warning" />
-                      Escalated
-                    </span>
-                    <span className="font-semibold text-warning">{stats.escalated}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3 text-success" />
-                      Resolved
-                    </span>
-                    <span className="font-semibold text-success">{stats.resolved}</span>
-                  </div>
+                <div className="space-y-2">
+                  {statCards.map((stat) => (
+                    <button
+                      key={stat.label}
+                      onClick={() => setStatusFilter(stat.status)}
+                      className={`w-full flex justify-between items-center p-2 rounded-lg transition-all hover:bg-muted ${
+                        statusFilter === stat.status ? 'bg-muted ring-2 ring-primary' : ''
+                      }`}
+                    >
+                      <span className="text-sm text-muted-foreground flex items-center gap-2">
+                        <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                        {stat.label}
+                      </span>
+                      <span className={`font-semibold ${stat.color}`}>{stat.value}</span>
+                    </button>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -148,6 +183,33 @@ export default function StudentFeed() {
               <Plus className="h-4 w-4 mr-2" />
               Report Issue
             </Button>
+
+            {/* Sidebar Apps */}
+            <Card className="glass-card">
+              <CardContent className="p-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  Campus Apps
+                </h3>
+                <div className="space-y-2">
+                  <Button variant="outline" className="w-full justify-start" disabled>
+                    <Zap className="h-4 w-4 mr-2 text-yellow-500" />
+                    CampusAssist
+                    <span className="ml-auto text-xs text-muted-foreground">Soon</span>
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start" disabled>
+                    <BookOpen className="h-4 w-4 mr-2 text-blue-500" />
+                    NoteHall
+                    <span className="ml-auto text-xs text-muted-foreground">Soon</span>
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start" disabled>
+                    <Sparkles className="h-4 w-4 mr-2 text-purple-500" />
+                    CampusBuzz
+                    <span className="ml-auto text-xs text-muted-foreground">Soon</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </aside>
 
           {/* Main Feed */}
@@ -167,12 +229,25 @@ export default function StudentFeed() {
                   </div>
                   <div className="flex gap-2">
                     <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                      <SelectTrigger className="w-40">
+                      <SelectTrigger className="w-36">
                         <SelectValue placeholder="Category" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Categories</SelectItem>
                         {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+                          <SelectItem key={key} value={key}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="w-36">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        {Object.entries(STATUS_LABELS).map(([key, label]) => (
                           <SelectItem key={key} value={key}>
                             {label}
                           </SelectItem>

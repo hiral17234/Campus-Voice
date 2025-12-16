@@ -138,7 +138,7 @@ const SEED_ISSUES: Issue[] = [
 
 function calculateStats(issues: Issue[]): Stats {
   const categoryCount: Record<IssueCategory, number> = {
-    academics: 0, faculty: 0, infrastructure: 0, safety: 0, food: 0, administration: 0
+    academics: 0, faculty: 0, infrastructure: 0, safety: 0, food: 0, administration: 0, other: 0
   };
   const locationCount: Record<string, number> = {};
 

@@ -7,11 +7,13 @@ import {
   Building2, 
   Shield, 
   UtensilsCrossed, 
-  Landmark 
+  Landmark,
+  HelpCircle
 } from 'lucide-react';
 
 interface CategoryBadgeProps {
   category: IssueCategory;
+  customCategory?: string;
   className?: string;
 }
 
@@ -22,16 +24,18 @@ const categoryConfig: Record<IssueCategory, { icon: typeof GraduationCap; classN
   safety: { icon: Shield, className: 'bg-destructive/20 text-destructive' },
   food: { icon: UtensilsCrossed, className: 'bg-success/20 text-success' },
   administration: { icon: Landmark, className: 'bg-warning/20 text-warning-foreground' },
+  other: { icon: HelpCircle, className: 'bg-muted text-muted-foreground' },
 };
 
-export function CategoryBadge({ category, className }: CategoryBadgeProps) {
+export function CategoryBadge({ category, customCategory, className }: CategoryBadgeProps) {
   const config = categoryConfig[category];
   const Icon = config.icon;
+  const label = category === 'other' && customCategory ? customCategory : CATEGORY_LABELS[category];
 
   return (
     <Badge variant="secondary" className={cn('gap-1', config.className, className)}>
       <Icon className="h-3 w-3" />
-      {CATEGORY_LABELS[category]}
+      {label}
     </Badge>
   );
 }

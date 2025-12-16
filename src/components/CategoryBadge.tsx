@@ -26,9 +26,9 @@ const categoryConfig: Record<IssueCategory, { icon: typeof GraduationCap; classN
 };
 
 export function CategoryBadge({ category, customCategory, className }: CategoryBadgeProps) {
-  const config = categoryConfig[category];
+  const config = categoryConfig[category] || categoryConfig.other;
   const Icon = config.icon;
-  const label = category === 'other' && customCategory ? customCategory : CATEGORY_LABELS[category];
+  const label = category === 'other' && customCategory ? customCategory : (CATEGORY_LABELS[category] || category);
 
   return (
     <Badge variant="secondary" className={cn('gap-1', config.className, className)}>

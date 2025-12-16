@@ -18,14 +18,14 @@ const statusConfig: Record<IssueStatus, { icon: typeof CheckCircle }> = {
 };
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
-  const config = statusConfig[status];
+  const config = statusConfig[status] || statusConfig.pending;
   const Icon = config.icon;
-  const colorClass = STATUS_COLORS[status];
+  const colorClass = STATUS_COLORS[status] || STATUS_COLORS.pending;
 
   return (
     <Badge variant="outline" className={cn('gap-1 font-medium', colorClass, className)}>
       <Icon className="h-3 w-3" />
-      {STATUS_LABELS[status]}
+      {STATUS_LABELS[status] || status}
     </Badge>
   );
 }

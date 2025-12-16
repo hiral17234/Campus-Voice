@@ -6,7 +6,8 @@ export type IssueCategory =
   | 'infrastructure' 
   | 'safety' 
   | 'food' 
-  | 'administration';
+  | 'administration'
+  | 'other';
 
 export type IssueStatus = 
   | 'open' 
@@ -83,6 +84,7 @@ export const CATEGORY_LABELS: Record<IssueCategory, string> = {
   safety: 'Safety',
   food: 'Food',
   administration: 'Administration',
+  other: 'Other',
 };
 
 export const STATUS_LABELS: Record<IssueStatus, string> = {

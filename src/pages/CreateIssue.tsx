@@ -13,7 +13,8 @@ import { Switch } from '@/components/ui/switch';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { CATEGORY_LABELS, IssueCategory } from '@/types';
 import { toast } from 'sonner';
-import { ArrowLeft, Megaphone, MapPin, Image, Mic, Video, AlertTriangle, FileText } from 'lucide-react';
+import { ArrowLeft, MapPin, Image, Mic, Video, AlertTriangle, FileText } from 'lucide-react';
+import campusAssistLogo from '@/assets/campus-assist-logo.png';
 
 export default function CreateIssue() {
   const { user } = useAuth();
@@ -63,8 +64,8 @@ export default function CreateIssue() {
               <Button variant="ghost" size="icon" onClick={() => navigate('/feed')}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-                <Megaphone className="h-5 w-5 text-primary-foreground" />
+              <div className="w-10 h-10 rounded-xl overflow-hidden">
+                <img src={campusAssistLogo} alt="CampusVoice" className="w-full h-full object-cover" />
               </div>
               <div>
                 <h1 className="text-lg font-bold">Report Issue</h1>

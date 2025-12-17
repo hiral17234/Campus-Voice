@@ -28,7 +28,7 @@ import {
   FileVideo,
   Shield
 } from 'lucide-react';
-import campusAssistLogo from '@/assets/campus-assist-logo.png';
+import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 
 export default function Profile() {
   const navigate = useNavigate();

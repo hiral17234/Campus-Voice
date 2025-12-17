@@ -25,7 +25,7 @@ import {
   Zap,
   Sparkles
 } from 'lucide-react';
-import campusAssistLogo from '@/assets/campus-assist-logo.png';
+import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 
 type SortOption = 'hot' | 'new';
 
@@ -95,7 +95,7 @@ export default function StudentFeed() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl overflow-hidden">
-                <img src={campusAssistLogo} alt="CampusVoice" className="w-full h-full object-cover" />
+                <img src={campusVoiceLogo} alt="CampusVoice" className="w-full h-full object-contain p-1" />
               </div>
               <div>
                 <h1 className="text-lg font-bold">CampusVoice</h1>

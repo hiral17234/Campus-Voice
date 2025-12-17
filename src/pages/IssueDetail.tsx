@@ -33,7 +33,7 @@ import {
   Info,
   Building2
 } from 'lucide-react';
-import campusAssistLogo from '@/assets/campus-assist-logo.png';
+import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 
 export default function IssueDetail() {
   const { id } = useParams<{ id: string }>();
@@ -94,9 +94,9 @@ export default function IssueDetail() {
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (user) {
-      const success = deleteIssue(issue.id, user.id);
+      const success = await deleteIssue(issue.id, user.id);
       if (success) {
         toast.success('Issue deleted successfully');
         navigate('/feed');
@@ -133,7 +133,7 @@ export default function IssueDetail() {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div className="w-10 h-10 rounded-xl overflow-hidden">
-                <img src={campusAssistLogo} alt="CampusVoice" className="w-full h-full object-cover" />
+                <img src={campusVoiceLogo} alt="CampusVoice" className="w-full h-full object-contain p-1" />
               </div>
               <div>
                 <h1 className="text-lg font-bold">Issue Details</h1>

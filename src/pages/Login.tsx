@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
@@ -8,8 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { toast } from 'sonner';
-import { Shield, Users, Lock, Mail, Eye, EyeOff } from 'lucide-react';
-import { UserRole } from '@/types';
+import { Shield, Users, Lock, Mail, Eye, EyeOff, RefreshCw, User, Check, X } from 'lucide-react';
+import { UserRole, generateNickname } from '@/types';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 
 export default function Login() {
@@ -19,14 +19,49 @@ export default function Login() {
   const [adminPassword, setAdminPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const [nickname, setNickname] = useState('');
+  const [isCheckingNickname, setIsCheckingNickname] = useState(false);
+  const [nicknameAvailable, setNicknameAvailable] = useState<boolean | null>(null);
+  const { login, checkNicknameAvailable } = useAuth();
   const navigate = useNavigate();
+
+  // Generate initial nickname
+  useEffect(() => {
+    setNickname(generateNickname());
+  }, []);
+
+  // Check nickname availability with debounce
+  useEffect(() => {
+    if (!nickname || nickname.length < 3) {
+      setNicknameAvailable(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsCheckingNickname(true);
+      const available = await checkNicknameAvailable(nickname);
+      setNicknameAvailable(available);
+      setIsCheckingNickname(false);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [nickname, checkNicknameAvailable]);
+
+  const handleGenerateNickname = () => {
+    setNickname(generateNickname());
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (role === 'student' && nicknameAvailable === false) {
+      toast.error('Please choose a different nickname - this one is taken');
+      return;
+    }
+
     setIsLoading(true);
 
-    const success = await login(role, campusCode, adminEmail, adminPassword);
+    const success = await login(role, campusCode, adminEmail, adminPassword, role === 'student' ? nickname : undefined);
 
     if (success) {
       toast.success(role === 'student' ? 'Welcome to CampusVoice!' : 'Admin access granted');
@@ -105,6 +140,63 @@ export default function Login() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Anonymous Nickname - Students only */}
+              <AnimatePresence mode="wait">
+                {role === 'student' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-2 overflow-hidden"
+                  >
+                    <Label htmlFor="nickname">Your Anonymous Name</Label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="nickname"
+                          type="text"
+                          placeholder="Choose your anonymous name"
+                          value={nickname}
+                          onChange={(e) => setNickname(e.target.value)}
+                          className="pl-10 pr-10"
+                          required
+                          minLength={3}
+                          maxLength={20}
+                        />
+                        {nickname.length >= 3 && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            {isCheckingNickname ? (
+                              <RefreshCw className="h-4 w-4 text-muted-foreground animate-spin" />
+                            ) : nicknameAvailable === true ? (
+                              <Check className="h-4 w-4 text-green-500" />
+                            ) : nicknameAvailable === false ? (
+                              <X className="h-4 w-4 text-destructive" />
+                            ) : null}
+                          </div>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={handleGenerateNickname}
+                        title="Generate random name"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {nicknameAvailable === false && (
+                      <p className="text-xs text-destructive">This name is already taken</p>
+                    )}
+                    {nicknameAvailable === true && (
+                      <p className="text-xs text-green-600 dark:text-green-400">Name is available!</p>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Campus Code - Both roles need this */}
               <div className="space-y-2">
                 <Label htmlFor="campusCode">Campus Access Code</Label>
@@ -169,13 +261,17 @@ export default function Login() {
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
-                      <p className="text-xs text-muted-foreground">Hint: admin@campus.edu / admin123</p>
+                      <p className="text-xs text-muted-foreground">Hint: admin@institute.edu / admin123</p>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              <Button type="submit" className="w-full gradient-primary" disabled={isLoading}>
+              <Button 
+                type="submit" 
+                className="w-full gradient-primary" 
+                disabled={isLoading || (role === 'student' && nicknameAvailable === false)}
+              >
                 {isLoading ? (
                   <motion.div
                     animate={{ rotate: 360 }}
@@ -192,7 +288,7 @@ export default function Login() {
 
             {role === 'student' && (
               <p className="text-xs text-center text-muted-foreground mt-4">
-                Your identity will remain anonymous. A random nickname will be assigned to you.
+                Your identity will remain anonymous. Choose a unique nickname above.
               </p>
             )}
           </CardContent>

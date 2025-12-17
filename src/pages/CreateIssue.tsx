@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
@@ -10,11 +10,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Progress } from '@/components/ui/progress';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { CATEGORY_LABELS, IssueCategory } from '@/types';
+import { uploadToCloudinary, getMediaType } from '@/lib/cloudinary';
 import { toast } from 'sonner';
-import { ArrowLeft, MapPin, Image, Mic, Video, AlertTriangle, FileText } from 'lucide-react';
+import { ArrowLeft, MapPin, Image, Video, AlertTriangle, FileText, X, Loader2 } from 'lucide-react';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
+
+interface UploadedMedia {
+  url: string;
+  type: 'image' | 'video' | 'audio' | 'pdf';
+  name: string;
+}
 
 export default function CreateIssue() {
   const { user } = useAuth();
@@ -27,6 +35,67 @@ export default function CreateIssue() {
   const [location, setLocation] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadedMedia, setUploadedMedia] = useState<UploadedMedia[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (file: File, type: 'image' | 'video' | 'pdf') => {
+    // Validate file size (20MB max)
+    const maxSize = 20 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error('File too large. Maximum size is 20MB');
+      return;
+    }
+
+    // Validate file type
+    const validTypes: Record<string, string[]> = {
+      image: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+      video: ['video/mp4', 'video/webm', 'video/quicktime'],
+      pdf: ['application/pdf'],
+    };
+
+    if (!validTypes[type].includes(file.type)) {
+      toast.error(`Invalid file type for ${type}`);
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const result = await uploadToCloudinary(file, (progress) => {
+        setUploadProgress(progress);
+      });
+
+      const mediaType = getMediaType(result.resource_type, result.format);
+      
+      setUploadedMedia(prev => [...prev, {
+        url: result.secure_url,
+        type: mediaType,
+        name: file.name,
+      }]);
+
+      toast.success('File uploaded successfully!');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload file. Please try again.');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(null);
+    }
+  };
+
+  const handleImageClick = () => imageInputRef.current?.click();
+  const handleVideoClick = () => videoInputRef.current?.click();
+  const handlePdfClick = () => pdfInputRef.current?.click();
+
+  const removeMedia = (index: number) => {
+    setUploadedMedia(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,28 +103,53 @@ export default function CreateIssue() {
 
     setIsSubmitting(true);
 
-    // Simulate network delay
-    await new Promise((r) => setTimeout(r, 500));
+    try {
+      addIssue({
+        title,
+        description,
+        category,
+        location,
+        authorNickname: user.nickname!,
+        authorId: user.id,
+        mediaUrls: uploadedMedia.map(m => m.url),
+        mediaTypes: uploadedMedia.map(m => m.type),
+        isUrgent,
+      });
 
-    addIssue({
-      title,
-      description,
-      category,
-      location,
-      authorNickname: user.nickname!,
-      authorId: user.id,
-      mediaUrls: [],
-      mediaTypes: [],
-      isUrgent,
-    });
-
-    toast.success('Issue reported successfully!');
-    navigate('/feed');
-    setIsSubmitting(false);
+      toast.success('Issue reported successfully!');
+      navigate('/feed');
+    } catch (error) {
+      toast.error('Failed to create issue. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Hidden file inputs */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'image')}
+      />
+      <input
+        ref={videoInputRef}
+        type="file"
+        accept="video/*"
+        className="hidden"
+        onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'video')}
+      />
+      <input
+        ref={pdfInputRef}
+        type="file"
+        accept="application/pdf"
+        className="hidden"
+        onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'pdf')}
+      />
+
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 py-3">
@@ -153,25 +247,78 @@ export default function CreateIssue() {
                 </div>
 
                 {/* Media Upload Buttons */}
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <Label>Attachments (Optional)</Label>
                   <div className="flex flex-wrap gap-2">
-                    <Button type="button" variant="outline" size="sm" disabled>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleImageClick}
+                      disabled={isUploading}
+                    >
                       <Image className="h-4 w-4 mr-2" />
                       Add Image
                     </Button>
-                    <Button type="button" variant="outline" size="sm" disabled>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handlePdfClick}
+                      disabled={isUploading}
+                    >
                       <FileText className="h-4 w-4 mr-2" />
                       Add PDF
                     </Button>
-                    <Button type="button" variant="outline" size="sm" disabled>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleVideoClick}
+                      disabled={isUploading}
+                    >
                       <Video className="h-4 w-4 mr-2" />
                       Video (&lt;20MB)
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Media uploads require backend integration
-                  </p>
+
+                  {/* Upload Progress */}
+                  {isUploading && uploadProgress !== null && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Uploading... {uploadProgress}%
+                      </div>
+                      <Progress value={uploadProgress} className="h-2" />
+                    </div>
+                  )}
+
+                  {/* Uploaded Files Preview */}
+                  {uploadedMedia.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">Uploaded files:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {uploadedMedia.map((media, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg text-sm"
+                          >
+                            {media.type === 'image' && <Image className="h-4 w-4" />}
+                            {media.type === 'video' && <Video className="h-4 w-4" />}
+                            {media.type === 'pdf' && <FileText className="h-4 w-4" />}
+                            <span className="max-w-[150px] truncate">{media.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeMedia(index)}
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Urgent Toggle */}
@@ -204,7 +351,7 @@ export default function CreateIssue() {
                   <Button
                     type="submit"
                     className="flex-1 gradient-primary"
-                    disabled={isSubmitting || !title || !description || !category || !location}
+                    disabled={isSubmitting || isUploading || !title || !description || !category || !location}
                   >
                     {isSubmitting ? 'Submitting...' : 'Submit Issue'}
                   </Button>

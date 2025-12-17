@@ -8,7 +8,7 @@ import {
   signInWithPopup,
   User as FirebaseUser
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { User, UserRole, generateNickname, CAMPUS_CODE, FACULTY_CODE } from '@/types';
 
@@ -16,10 +16,11 @@ interface AuthContextType {
   user: User | null;
   firebaseUser: FirebaseUser | null;
   isLoading: boolean;
-  login: (role: UserRole, campusCode: string, adminEmail?: string, adminPassword?: string) => Promise<boolean>;
+  login: (role: UserRole, campusCode: string, adminEmail?: string, adminPassword?: string, customNickname?: string) => Promise<boolean>;
   loginWithGoogle: () => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
+  checkNicknameAvailable: (nickname: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,10 +30,29 @@ const ADMIN_CREDENTIALS = {
   password: 'admin123'
 };
 
+// Generate a strong password that meets Firebase requirements
+function generateStrongPassword(): string {
+  const timestamp = Date.now().toString(36);
+  return `Cv@${timestamp}x!`;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Check if nickname is available
+  const checkNicknameAvailable = async (nickname: string): Promise<boolean> => {
+    try {
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('name', '==', nickname));
+      const snapshot = await getDocs(q);
+      return snapshot.empty;
+    } catch (error) {
+      console.error('Error checking nickname:', error);
+      return true; // Allow if can't check
+    }
+  };
 
   // Listen to Firebase auth state changes
   useEffect(() => {
@@ -98,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const login = async (role: UserRole, campusCode: string, adminEmail?: string, adminPassword?: string): Promise<boolean> => {
+  const login = async (role: UserRole, campusCode: string, adminEmail?: string, adminPassword?: string, customNickname?: string): Promise<boolean> => {
     // Student login with CAMPUS2024
     if (role === 'student') {
       if (campusCode !== CAMPUS_CODE) {
@@ -118,13 +138,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const email = role === 'admin' ? adminEmail! : `student_${Date.now()}@campusvoice.app`;
-      const password = role === 'admin' ? adminPassword! : campusCode;
-      const nickname = role === 'student' ? generateNickname() : 'Faculty';
+      const password = role === 'admin' ? adminPassword! : generateStrongPassword();
+      const nickname = role === 'student' ? (customNickname || generateNickname()) : 'Faculty';
+
+      // For students, check nickname uniqueness
+      if (role === 'student' && customNickname) {
+        const isAvailable = await checkNicknameAvailable(customNickname);
+        if (!isAvailable) {
+          throw new Error('Nickname already taken');
+        }
+      }
 
       let userCredential;
       try {
-        // Try to sign in first
-        userCredential = await signInWithEmailAndPassword(auth, email, password);
+        // Try to sign in first (for admin)
+        if (role === 'admin') {
+          userCredential = await signInWithEmailAndPassword(auth, email, password);
+        } else {
+          // For students, always create new account
+          userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        }
       } catch (signInError: any) {
         if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential') {
           // Create new user if doesn't exist
@@ -162,11 +195,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Firebase auth error:', error);
       
       // Fallback to local-only authentication if Firebase fails
+      const nickname = role === 'student' ? (customNickname || generateNickname()) : 'Faculty';
       const newUser: User = {
         id: crypto.randomUUID(),
         email: role === 'admin' ? adminEmail : undefined,
         role,
-        nickname: role === 'student' ? generateNickname() : 'Faculty',
+        nickname,
         createdAt: new Date(),
       };
 
@@ -236,7 +270,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login, 
       loginWithGoogle,
       logout, 
-      isAuthenticated: !!user 
+      isAuthenticated: !!user,
+      checkNicknameAvailable
     }}>
       {children}
     </AuthContext.Provider>

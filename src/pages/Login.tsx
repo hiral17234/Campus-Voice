@@ -10,7 +10,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { toast } from 'sonner';
 import { Shield, Users, Lock, Mail, Eye, EyeOff } from 'lucide-react';
 import { UserRole } from '@/types';
-import campusAssistLogo from '@/assets/campus-assist-logo.png';
+import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 
 export default function Login() {
   const [role, setRole] = useState<UserRole>('student');
@@ -64,7 +64,7 @@ export default function Login() {
             transition={{ type: 'spring', stiffness: 200 }}
             className="inline-flex items-center justify-center w-20 h-20 rounded-2xl overflow-hidden mb-4"
           >
-            <img src={campusAssistLogo} alt="CampusVoice" className="w-full h-full object-cover" />
+            <img src={campusVoiceLogo} alt="CampusVoice" className="w-full h-full object-contain p-1" />
           </motion.div>
           <h1 className="text-3xl font-bold text-foreground">CampusVoice</h1>
           <p className="text-muted-foreground mt-2">Anonymous platform for campus community</p>

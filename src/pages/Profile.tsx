@@ -24,11 +24,11 @@ import {
   Clock,
   XCircle,
   AlertTriangle,
-  Megaphone,
   Image,
   FileVideo,
   Shield
 } from 'lucide-react';
+import campusAssistLogo from '@/assets/campus-assist-logo.png';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -253,7 +253,7 @@ export default function Profile() {
                 <CardContent className="space-y-2">
                   {userIssues.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                      <Megaphone className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
                       <p>You haven't posted any issues yet</p>
                       <Button variant="link" onClick={() => navigate('/create')}>
                         Report your first issue

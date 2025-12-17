@@ -8,7 +8,6 @@ import { Progress } from '@/components/ui/progress';
 import { CATEGORY_LABELS, IssueStatus } from '@/types';
 import {
   ArrowLeft,
-  Megaphone,
   TrendingUp,
   CheckCircle,
   AlertTriangle,
@@ -18,6 +17,7 @@ import {
   Timer,
   XCircle
 } from 'lucide-react';
+import campusAssistLogo from '@/assets/campus-assist-logo.png';
 
 export default function PublicStats() {
   const { stats, issues } = useIssues();
@@ -44,8 +44,8 @@ export default function PublicStats() {
               <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-                <Megaphone className="h-5 w-5 text-primary-foreground" />
+              <div className="w-10 h-10 rounded-xl overflow-hidden">
+                <img src={campusAssistLogo} alt="CampusVoice" className="w-full h-full object-cover" />
               </div>
               <div>
                 <h1 className="text-lg font-bold">Transparency Dashboard</h1>

@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { toast } from 'sonner';
-import { Shield, Users, Megaphone, Lock, Mail, Eye, EyeOff } from 'lucide-react';
+import { Shield, Users, Lock, Mail, Eye, EyeOff } from 'lucide-react';
 import { UserRole } from '@/types';
+import campusAssistLogo from '@/assets/campus-assist-logo.png';
 
 export default function Login() {
   const [role, setRole] = useState<UserRole>('student');
@@ -61,9 +62,9 @@ export default function Login() {
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 200 }}
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-primary mb-4"
+            className="inline-flex items-center justify-center w-20 h-20 rounded-2xl overflow-hidden mb-4"
           >
-            <Megaphone className="h-8 w-8 text-primary-foreground" />
+            <img src={campusAssistLogo} alt="CampusVoice" className="w-full h-full object-cover" />
           </motion.div>
           <h1 className="text-3xl font-bold text-foreground">CampusVoice</h1>
           <p className="text-muted-foreground mt-2">Anonymous platform for campus community</p>

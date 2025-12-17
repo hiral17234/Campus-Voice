@@ -11,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { CATEGORY_LABELS, IssueCategory, IssueStatus, STATUS_LABELS } from '@/types';
 import { 
-  Megaphone, 
   Plus, 
   LogOut, 
   Search, 
@@ -19,7 +18,6 @@ import {
   Clock, 
   TrendingUp,
   CheckCircle,
-  AlertTriangle,
   BarChart3,
   User,
   Bell,
@@ -27,6 +25,7 @@ import {
   Zap,
   Sparkles
 } from 'lucide-react';
+import campusAssistLogo from '@/assets/campus-assist-logo.png';
 
 type SortOption = 'hot' | 'new';
 
@@ -95,8 +94,8 @@ export default function StudentFeed() {
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-                <Megaphone className="h-5 w-5 text-primary-foreground" />
+              <div className="w-10 h-10 rounded-xl overflow-hidden">
+                <img src={campusAssistLogo} alt="CampusVoice" className="w-full h-full object-cover" />
               </div>
               <div>
                 <h1 className="text-lg font-bold">CampusVoice</h1>

@@ -21,7 +21,6 @@ import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'sonner';
 import { 
   ArrowLeft, 
-  Megaphone, 
   MapPin, 
   Clock, 
   User, 
@@ -34,6 +33,7 @@ import {
   Info,
   Building2
 } from 'lucide-react';
+import campusAssistLogo from '@/assets/campus-assist-logo.png';
 
 export default function IssueDetail() {
   const { id } = useParams<{ id: string }>();
@@ -132,8 +132,8 @@ export default function IssueDetail() {
               <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-                <Megaphone className="h-5 w-5 text-primary-foreground" />
+              <div className="w-10 h-10 rounded-xl overflow-hidden">
+                <img src={campusAssistLogo} alt="CampusVoice" className="w-full h-full object-cover" />
               </div>
               <div>
                 <h1 className="text-lg font-bold">Issue Details</h1>

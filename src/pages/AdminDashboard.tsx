@@ -19,7 +19,6 @@ import { CATEGORY_LABELS, STATUS_LABELS, PRIORITY_LABELS, DEPARTMENT_LABELS, Iss
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import {
-  LayoutDashboard,
   LogOut,
   Search,
   TrendingUp,
@@ -37,6 +36,8 @@ import {
   XCircle,
   Bell
 } from 'lucide-react';
+import campusAssistLogo from '@/assets/campus-assist-logo.png';
+import { DepartmentSelect } from '@/components/DepartmentSelect';
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
@@ -124,9 +125,9 @@ export default function AdminDashboard() {
     toast.success('Priority updated');
   };
 
-  const handleDepartmentAssign = (issueId: string, department: Department) => {
-    assignDepartment(issueId, department);
-    toast.success('Department assigned');
+  const handleDepartmentAssign = (issueId: string, department: Department, customDepartment?: string) => {
+    assignDepartment(issueId, department, customDepartment);
+    toast.success(department === 'other' && customDepartment ? `Assigned to: ${customDepartment}` : 'Department assigned');
   };
 
   const statCards = [
@@ -145,8 +146,8 @@ export default function AdminDashboard() {
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
-                <LayoutDashboard className="h-5 w-5 text-secondary-foreground" />
+              <div className="w-10 h-10 rounded-xl overflow-hidden">
+                <img src={campusAssistLogo} alt="CampusVoice" className="w-full h-full object-cover" />
               </div>
               <div>
                 <h1 className="text-lg font-bold">Faculty Dashboard</h1>
@@ -376,19 +377,12 @@ export default function AdminDashboard() {
                                   </Select>
                                 </TableCell>
                                 <TableCell>
-                                  <Select 
+                                  <DepartmentSelect 
                                     value={issue.assignedDepartment || ''} 
-                                    onValueChange={(v) => handleDepartmentAssign(issue.id, v as Department)}
-                                  >
-                                    <SelectTrigger className="w-28 h-8 text-xs">
-                                      <SelectValue placeholder="Assign" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {Object.entries(DEPARTMENT_LABELS).map(([key, label]) => (
-                                        <SelectItem key={key} value={key}>{label}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                    customValue={issue.customDepartment}
+                                    onValueChange={(dept, custom) => handleDepartmentAssign(issue.id, dept, custom)}
+                                    className="w-28"
+                                  />
                                 </TableCell>
                                 <TableCell>
                                   <Badge variant="outline" className="text-xs">

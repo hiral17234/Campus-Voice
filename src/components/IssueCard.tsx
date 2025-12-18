@@ -4,9 +4,10 @@ import { StatusBadge } from './StatusBadge';
 import { CategoryBadge } from './CategoryBadge';
 import { PriorityBadge } from './PriorityBadge';
 import { VoteButtons } from './VoteButtons';
+import { MediaGallery } from './MediaGallery';
 import { useAuth } from '@/context/AuthContext';
 import { useIssues } from '@/context/IssuesContext';
-import { MapPin, MessageSquare, Clock, AlertTriangle, Flag } from 'lucide-react';
+import { MapPin, MessageSquare, Clock, AlertTriangle, Flag, Image } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -28,6 +29,7 @@ export function IssueCard({ issue }: IssueCardProps) {
 
   const userVote = user ? issue.votedUsers[user.id] : null;
   const netVotes = issue.upvotes - issue.downvotes;
+  const hasMedia = issue.mediaUrls && issue.mediaUrls.length > 0;
 
   return (
     <motion.div
@@ -74,13 +76,28 @@ export function IssueCard({ issue }: IssueCardProps) {
                       Reported
                     </span>
                   )}
+                  {hasMedia && (
+                    <span className="flex items-center gap-1 text-xs text-primary font-medium">
+                      <Image className="h-3 w-3" />
+                      {issue.mediaUrls.length} media
+                    </span>
+                  )}
                 </div>
               </div>
 
               <h3 className="text-lg font-semibold mb-2 line-clamp-2">{issue.title}</h3>
               <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{issue.description}</p>
 
-              <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+              {/* Media Preview - Compact */}
+              {hasMedia && (
+                <MediaGallery 
+                  mediaUrls={issue.mediaUrls.slice(0, 3)} 
+                  mediaTypes={issue.mediaTypes.slice(0, 3)} 
+                  compact 
+                />
+              )}
+
+              <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground mt-3">
                 <span className="flex items-center gap-1">
                   <MapPin className="h-3 w-3" />
                   {issue.location}

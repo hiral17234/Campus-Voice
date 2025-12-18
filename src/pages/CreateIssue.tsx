@@ -104,7 +104,7 @@ export default function CreateIssue() {
     setIsSubmitting(true);
 
     try {
-      addIssue({
+      await addIssue({
         title,
         description,
         category,
@@ -116,10 +116,11 @@ export default function CreateIssue() {
         isUrgent,
       });
 
-      toast.success('Issue reported successfully!');
+      toast.success('Issue reported successfully! It will appear in the feed shortly.');
       navigate('/feed');
-    } catch (error) {
-      toast.error('Failed to create issue. Please try again.');
+    } catch (error: any) {
+      console.error('Error creating issue:', error);
+      toast.error(error.message || 'Failed to create issue. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

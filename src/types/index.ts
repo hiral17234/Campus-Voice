@@ -14,7 +14,8 @@ export type IssueStatus =
   | 'approved'
   | 'in_progress' 
   | 'resolved'
-  | 'rejected';
+  | 'rejected'
+  | 'deleted';
 
 export type IssuePriority = 'low' | 'medium' | 'high' | 'urgent';
 
@@ -56,11 +57,13 @@ export interface Comment {
   issueId: string;
   authorNickname: string;
   authorId: string;
+  authorRole?: UserRole;
   content: string;
   mediaUrl?: string;
   mediaType?: 'image' | 'audio' | 'video' | 'pdf';
   createdAt: Date;
   isAdminResponse?: boolean;
+  isOfficial?: boolean;
   reports?: Report[];
 }
 
@@ -88,6 +91,7 @@ export interface Issue {
   location: string;
   authorNickname: string;
   authorId: string;
+  authorRole?: UserRole;
   status: IssueStatus;
   priority?: IssuePriority;
   assignedDepartment?: Department;
@@ -101,9 +105,11 @@ export interface Issue {
   timeline: TimelineEvent[];
   commentCount: number;
   isUrgent: boolean;
+  isOfficial?: boolean;
   reports: Report[];
   reportCount: number;
-  isReported: boolean; // true when reportCount >= 10
+  isReported: boolean; // true when reportCount >= 3
+  isDeleted?: boolean; // true when reportCount >= 10
   resolution?: IssueResolution;
   createdAt: Date;
   updatedAt: Date;
@@ -112,7 +118,7 @@ export interface Issue {
 export interface Notification {
   id: string;
   userId: string;
-  type: 'status_change' | 'faculty_comment' | 'issue_resolved';
+  type: 'status_change' | 'faculty_comment' | 'issue_resolved' | 'new_comment' | 'vote_milestone';
   title: string;
   message: string;
   issueId: string;
@@ -129,6 +135,7 @@ export interface Stats {
   resolved: number;
   rejected: number;
   reported: number;
+  deleted: number;
   avgResponseTime: number;
   topCategories: { category: IssueCategory; count: number }[];
   hotspotLocations: { location: string; count: number }[];
@@ -140,6 +147,9 @@ export interface UserActivity {
   issuesDownvoted: string[];
   issuesCommented: string[];
   issuesReported: string[];
+  totalUpvotesReceived: number;
+  totalDownvotesReceived: number;
+  totalCommentsReceived: number;
 }
 
 export const CAMPUS_CODE = 'CAMPUS2024';
@@ -161,6 +171,7 @@ export const STATUS_LABELS: Record<IssueStatus, string> = {
   in_progress: 'In Progress',
   resolved: 'Resolved',
   rejected: 'Rejected',
+  deleted: 'Deleted',
 };
 
 export const STATUS_COLORS: Record<IssueStatus, string> = {
@@ -170,6 +181,7 @@ export const STATUS_COLORS: Record<IssueStatus, string> = {
   in_progress: 'bg-orange-500/20 text-orange-600 dark:text-orange-400 border-orange-500',
   resolved: 'bg-green-500/20 text-green-600 dark:text-green-400 border-green-500',
   rejected: 'bg-red-500/20 text-red-600 dark:text-red-400 border-red-500',
+  deleted: 'bg-gray-500/20 text-gray-600 dark:text-gray-400 border-gray-500',
 };
 
 export const PRIORITY_LABELS: Record<IssuePriority, string> = {
@@ -228,4 +240,5 @@ export const STATUS_TRANSITIONS: Record<IssueStatus, IssueStatus[]> = {
   in_progress: ['resolved'],
   resolved: [],
   rejected: [],
+  deleted: [],
 };

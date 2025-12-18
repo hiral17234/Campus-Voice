@@ -34,14 +34,18 @@ import {
   Building2,
   ArrowUpDown,
   XCircle,
-  Bell
+  Bell,
+  Plus,
+  Trash2,
+  RotateCcw,
+  Shield
 } from 'lucide-react';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 import { DepartmentSelect } from '@/components/DepartmentSelect';
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
-  const { issues, stats, updateStatus, addComment, setIssuePriority, assignDepartment, notifications } = useIssues();
+  const { issues, stats, updateStatus, addComment, setIssuePriority, assignDepartment, notifications, restoreIssue } = useIssues();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -54,12 +58,19 @@ export default function AdminDashboard() {
 
   const unreadNotifications = notifications.filter(n => n.userId === user?.id && !n.isRead).length;
 
-  const reportedIssues = useMemo(() => issues.filter(i => i.isReported), [issues]);
+  const reportedIssues = useMemo(() => issues.filter(i => i.isReported && !i.isDeleted), [issues]);
+  const deletedIssues = useMemo(() => issues.filter(i => i.isDeleted), [issues]);
 
   const filteredIssues = useMemo(() => {
-    let filtered = activeTab === 'reported' 
-      ? reportedIssues 
-      : issues.filter(i => !i.isReported);
+    let filtered: Issue[] = [];
+    
+    if (activeTab === 'reported') {
+      filtered = reportedIssues;
+    } else if (activeTab === 'deleted') {
+      filtered = deletedIssues;
+    } else {
+      filtered = issues.filter(i => !i.isReported && !i.isDeleted);
+    }
 
     // Search filter
     if (searchQuery) {
@@ -99,7 +110,7 @@ export default function AdminDashboard() {
     }
 
     return filtered;
-  }, [issues, reportedIssues, activeTab, searchQuery, statusFilter, categoryFilter, priorityFilter, sortBy]);
+  }, [issues, reportedIssues, deletedIssues, activeTab, searchQuery, statusFilter, categoryFilter, priorityFilter, sortBy]);
 
   const handleLogout = async () => {
     await logout();
@@ -113,8 +124,10 @@ export default function AdminDashboard() {
       issueId: selectedIssue.id,
       authorNickname: user.nickname || 'Administration',
       authorId: user.id,
+      authorRole: 'admin',
       content: `Status updated to ${STATUS_LABELS[newStatus]}: ${note}`,
       isAdminResponse: true,
+      isOfficial: true,
     });
     toast.success('Issue status updated');
     setSelectedIssue(null);
@@ -128,6 +141,15 @@ export default function AdminDashboard() {
   const handleDepartmentAssign = (issueId: string, department: Department, customDepartment?: string) => {
     assignDepartment(issueId, department, customDepartment);
     toast.success(department === 'other' && customDepartment ? `Assigned to: ${customDepartment}` : 'Department assigned');
+  };
+
+  const handleRestoreIssue = async (issueId: string) => {
+    try {
+      await restoreIssue(issueId);
+      toast.success('Issue restored successfully');
+    } catch (error) {
+      toast.error('Failed to restore issue');
+    }
   };
 
   const statCards = [
@@ -156,6 +178,15 @@ export default function AdminDashboard() {
             </div>
 
             <div className="flex items-center gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => navigate('/create')}
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Post Official Issue
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
@@ -222,7 +253,7 @@ export default function AdminDashboard() {
                       {reportedIssues.length} Reported Issues Need Attention
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Issues with 10+ community reports require moderation
+                      Issues with 3+ reports are flagged. Issues with 10+ reports are auto-deleted.
                     </p>
                   </div>
                 </div>
@@ -249,6 +280,15 @@ export default function AdminDashboard() {
                 </Badge>
               )}
             </TabsTrigger>
+            <TabsTrigger value="deleted" className="relative">
+              <Trash2 className="h-4 w-4 mr-1" />
+              Deleted
+              {deletedIssues.length > 0 && (
+                <Badge variant="secondary" className="ml-2 h-5 px-1.5">
+                  {deletedIssues.length}
+                </Badge>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value={activeTab}>
@@ -258,7 +298,9 @@ export default function AdminDashboard() {
                 <Card className="glass-card">
                   <CardHeader>
                     <div className="flex flex-col gap-4">
-                      <CardTitle>{activeTab === 'reported' ? 'Reported Issues' : 'All Issues'}</CardTitle>
+                      <CardTitle>
+                        {activeTab === 'reported' ? 'Reported Issues' : activeTab === 'deleted' ? 'Deleted Issues' : 'All Issues'}
+                      </CardTitle>
                       <div className="flex flex-wrap gap-2">
                         <div className="relative flex-1 min-w-[200px]">
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -325,7 +367,7 @@ export default function AdminDashboard() {
                             <TableHead>Category</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Priority</TableHead>
-                            <TableHead>Department</TableHead>
+                            {activeTab === 'reported' && <TableHead>Reports</TableHead>}
                             <TableHead>Votes</TableHead>
                             <TableHead>Actions</TableHead>
                           </TableRow>
@@ -333,19 +375,25 @@ export default function AdminDashboard() {
                         <TableBody>
                           {filteredIssues.length === 0 ? (
                             <TableRow>
-                              <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                              <TableCell colSpan={activeTab === 'reported' ? 7 : 6} className="text-center py-8 text-muted-foreground">
                                 No issues found
                               </TableCell>
                             </TableRow>
                           ) : (
                             filteredIssues.map((issue) => (
-                              <TableRow key={issue.id} className={issue.isReported ? 'bg-red-500/5' : ''}>
+                              <TableRow key={issue.id} className={issue.isReported ? 'bg-red-500/5' : issue.isOfficial ? 'bg-primary/5' : ''}>
                                 <TableCell>
                                   <div className="max-w-[180px]">
                                     <div className="flex items-center gap-2">
                                       {issue.isReported && <Flag className="h-3 w-3 text-red-500 flex-shrink-0" />}
+                                      {issue.isOfficial && <Shield className="h-3 w-3 text-primary flex-shrink-0" />}
                                       <p className="font-medium truncate">{issue.title}</p>
                                     </div>
+                                    {issue.isOfficial && (
+                                      <Badge variant="default" className="text-xs mt-1">
+                                        Official
+                                      </Badge>
+                                    )}
                                     <p className="text-xs text-muted-foreground flex items-center gap-1">
                                       <MapPin className="h-3 w-3" />
                                       {issue.location}
@@ -362,32 +410,36 @@ export default function AdminDashboard() {
                                   <StatusBadge status={issue.status} />
                                 </TableCell>
                                 <TableCell>
-                                  <Select 
-                                    value={issue.priority || ''} 
-                                    onValueChange={(v) => handlePriorityChange(issue.id, v as IssuePriority)}
-                                  >
-                                    <SelectTrigger className="w-24 h-8 text-xs">
-                                      <SelectValue placeholder="Set" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {Object.entries(PRIORITY_LABELS).map(([key, label]) => (
-                                        <SelectItem key={key} value={key}>{label}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                  {activeTab !== 'deleted' ? (
+                                    <Select 
+                                      value={issue.priority || ''} 
+                                      onValueChange={(v) => handlePriorityChange(issue.id, v as IssuePriority)}
+                                    >
+                                      <SelectTrigger className="w-24 h-8 text-xs">
+                                        <SelectValue placeholder="Set" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {Object.entries(PRIORITY_LABELS).map(([key, label]) => (
+                                          <SelectItem key={key} value={key}>{label}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    issue.priority && <PriorityBadge priority={issue.priority} />
+                                  )}
                                 </TableCell>
+                                {activeTab === 'reported' && (
+                                  <TableCell>
+                                    <Badge variant="destructive" className="text-xs">
+                                      {issue.reportCount} reports
+                                    </Badge>
+                                  </TableCell>
+                                )}
                                 <TableCell>
-                                  <DepartmentSelect 
-                                    value={issue.assignedDepartment || ''} 
-                                    customValue={issue.customDepartment}
-                                    onValueChange={(dept, custom) => handleDepartmentAssign(issue.id, dept, custom)}
-                                    className="w-28"
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant="outline" className="text-xs">
-                                    {issue.upvotes - issue.downvotes}
-                                  </Badge>
+                                  <div className="flex items-center gap-1 text-sm">
+                                    <span className="text-green-500">↑{issue.upvotes}</span>
+                                    <span className="text-red-500">↓{issue.downvotes}</span>
+                                  </div>
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex gap-1">
@@ -398,16 +450,27 @@ export default function AdminDashboard() {
                                     >
                                       <Eye className="h-4 w-4" />
                                     </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => {
-                                        setSelectedIssue(issue);
-                                        setShowStatusModal(true);
-                                      }}
-                                    >
-                                      <RefreshCw className="h-4 w-4" />
-                                    </Button>
+                                    {activeTab === 'deleted' ? (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleRestoreIssue(issue.id)}
+                                        className="text-green-500 hover:text-green-600"
+                                      >
+                                        <RotateCcw className="h-4 w-4" />
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          setSelectedIssue(issue);
+                                          setShowStatusModal(true);
+                                        }}
+                                      >
+                                        <RefreshCw className="h-4 w-4" />
+                                      </Button>
+                                    )}
                                   </div>
                                 </TableCell>
                               </TableRow>
@@ -420,70 +483,61 @@ export default function AdminDashboard() {
                 </Card>
               </div>
 
-              {/* Sidebar Analytics */}
+              {/* Sidebar */}
               <div className="lg:col-span-1 space-y-4">
+                {/* Top Categories */}
                 <Card className="glass-card">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-primary" />
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4" />
                       Top Categories
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {stats.topCategories.map((cat) => (
-                        <div key={cat.category} className="flex justify-between items-center">
-                          <span className="text-sm">{CATEGORY_LABELS[cat.category] || cat.category}</span>
-                          <Badge variant="secondary">{cat.count}</Badge>
-                        </div>
-                      ))}
-                    </div>
+                  <CardContent className="space-y-2">
+                    {stats.topCategories.map((cat) => (
+                      <div key={cat.category} className="flex justify-between items-center">
+                        <span className="text-sm">{CATEGORY_LABELS[cat.category]}</span>
+                        <Badge variant="secondary">{cat.count}</Badge>
+                      </div>
+                    ))}
                   </CardContent>
                 </Card>
 
+                {/* Hotspot Locations */}
                 <Card className="glass-card">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <MapPin className="h-5 w-5 text-orange-500" />
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
                       Hotspot Locations
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {stats.hotspotLocations.map((loc) => (
-                        <div key={loc.location} className="flex justify-between items-center">
-                          <span className="text-sm truncate max-w-[120px]">{loc.location}</span>
-                          <Badge variant="secondary">{loc.count}</Badge>
-                        </div>
-                      ))}
-                    </div>
+                  <CardContent className="space-y-2">
+                    {stats.hotspotLocations.map((loc) => (
+                      <div key={loc.location} className="flex justify-between items-center">
+                        <span className="text-sm truncate">{loc.location}</span>
+                        <Badge variant="outline">{loc.count}</Badge>
+                      </div>
+                    ))}
                   </CardContent>
                 </Card>
 
+                {/* Moderation Stats */}
                 <Card className="glass-card">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Building2 className="h-5 w-5 text-blue-500" />
-                      Quick Actions
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Flag className="h-4 w-4" />
+                      Moderation
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-start"
-                      onClick={() => navigate('/stats')}
-                    >
-                      <BarChart3 className="h-4 w-4 mr-2" />
-                      View Public Stats
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-start"
-                      onClick={() => navigate('/profile')}
-                    >
-                      <Users className="h-4 w-4 mr-2" />
-                      My Profile
-                    </Button>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Reported</span>
+                      <Badge variant="destructive">{stats.reported}</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Deleted</span>
+                      <Badge variant="secondary">{stats.deleted}</Badge>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -500,9 +554,8 @@ export default function AdminDashboard() {
             setShowStatusModal(false);
             setSelectedIssue(null);
           }}
-          onConfirm={handleStatusChange}
           currentStatus={selectedIssue.status}
-          issueTitle={selectedIssue.title}
+          onStatusChange={handleStatusChange}
         />
       )}
     </div>

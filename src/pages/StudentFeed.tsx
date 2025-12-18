@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CATEGORY_LABELS, IssueCategory, IssueStatus, STATUS_LABELS } from '@/types';
 import { 
   Plus, 
@@ -24,7 +26,8 @@ import {
   Bell,
   BookOpen,
   Zap,
-  Sparkles
+  Sparkles,
+  Flag
 } from 'lucide-react';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 
@@ -39,11 +42,24 @@ export default function StudentFeed() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showLogoutWarning, setShowLogoutWarning] = useState(false);
+  const [activeTab, setActiveTab] = useState('feed');
 
   const unreadNotifications = notifications.filter(n => n.userId === user?.id && !n.isRead).length;
 
+  // Get reported issues that the user has reported
+  const userReportedIssues = useMemo(() => {
+    if (!user) return [];
+    return issues.filter(i => i.reports.some(r => r.reporterId === user.id));
+  }, [issues, user]);
+
+  // All reported issues (flagged)
+  const allReportedIssues = useMemo(() => {
+    return issues.filter(i => i.isReported && !i.isDeleted);
+  }, [issues]);
+
   const filteredAndSortedIssues = useMemo(() => {
-    let filtered = issues.filter(i => !i.isReported); // Hide reported issues from main feed
+    // Only show non-reported, non-deleted issues in main feed
+    let filtered = issues.filter(i => !i.isReported && !i.isDeleted);
 
     // Search filter
     if (searchQuery) {
@@ -176,9 +192,12 @@ export default function StudentFeed() {
                   {statCards.map((stat) => (
                     <button
                       key={stat.label}
-                      onClick={() => setStatusFilter(stat.status)}
+                      onClick={() => {
+                        setActiveTab('feed');
+                        setStatusFilter(stat.status);
+                      }}
                       className={`w-full flex justify-between items-center p-2 rounded-lg transition-all hover:bg-muted ${
-                        statusFilter === stat.status ? 'bg-muted ring-2 ring-primary' : ''
+                        statusFilter === stat.status && activeTab === 'feed' ? 'bg-muted ring-2 ring-primary' : ''
                       }`}
                     >
                       <span className="text-sm text-muted-foreground flex items-center gap-2">
@@ -234,92 +253,151 @@ export default function StudentFeed() {
 
           {/* Main Feed */}
           <div className="lg:col-span-3 space-y-4">
-            {/* Filters */}
-            <Card className="glass-card">
-              <CardContent className="p-4">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search issues..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                      <SelectTrigger className="w-36">
-                        <SelectValue placeholder="Category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Categories</SelectItem>
-                        {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-                          <SelectItem key={key} value={key}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-36">
-                        <SelectValue placeholder="Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
-                        {Object.entries(STATUS_LABELS).map(([key, label]) => (
-                          <SelectItem key={key} value={key}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <div className="flex rounded-lg bg-muted p-1">
-                      <button
-                        onClick={() => setSortBy('hot')}
-                        className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                          sortBy === 'hot' ? 'bg-card shadow-sm' : 'text-muted-foreground'
-                        }`}
-                      >
-                        <Flame className="h-4 w-4" />
-                        Hot
-                      </button>
-                      <button
-                        onClick={() => setSortBy('new')}
-                        className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                          sortBy === 'new' ? 'bg-card shadow-sm' : 'text-muted-foreground'
-                        }`}
-                      >
-                        <Clock className="h-4 w-4" />
-                        New
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Tabs for Feed and Reported */}
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="mb-4">
+                <TabsTrigger value="feed">All Issues</TabsTrigger>
+                <TabsTrigger value="reported" className="relative">
+                  <Flag className="h-4 w-4 mr-1" />
+                  Reported
+                  {allReportedIssues.length > 0 && (
+                    <Badge variant="destructive" className="ml-2 h-5 px-1.5">
+                      {allReportedIssues.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              </TabsList>
 
-            {/* Issues List */}
-            <div className="space-y-4">
-              {filteredAndSortedIssues.length === 0 ? (
-                <Card className="glass-card">
-                  <CardContent className="p-8 text-center">
-                    <p className="text-muted-foreground">No issues found</p>
+              <TabsContent value="feed">
+                {/* Filters */}
+                <Card className="glass-card mb-4">
+                  <CardContent className="p-4">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search issues..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                          <SelectTrigger className="w-36">
+                            <SelectValue placeholder="Category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Categories</SelectItem>
+                            {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+                              <SelectItem key={key} value={key}>
+                                {label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                          <SelectTrigger className="w-36">
+                            <SelectValue placeholder="Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Status</SelectItem>
+                            {Object.entries(STATUS_LABELS).filter(([key]) => key !== 'deleted').map(([key, label]) => (
+                              <SelectItem key={key} value={key}>
+                                {label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="flex rounded-lg bg-muted p-1">
+                          <button
+                            onClick={() => setSortBy('hot')}
+                            className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                              sortBy === 'hot' ? 'bg-card shadow-sm' : 'text-muted-foreground'
+                            }`}
+                          >
+                            <Flame className="h-4 w-4" />
+                            Hot
+                          </button>
+                          <button
+                            onClick={() => setSortBy('new')}
+                            className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                              sortBy === 'new' ? 'bg-card shadow-sm' : 'text-muted-foreground'
+                            }`}
+                          >
+                            <Clock className="h-4 w-4" />
+                            New
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
-              ) : (
-                filteredAndSortedIssues.map((issue, index) => (
-                  <motion.div
-                    key={issue.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    <IssueCard issue={issue} />
-                  </motion.div>
-                ))
-              )}
-            </div>
+
+                {/* Issues List */}
+                <div className="space-y-4">
+                  {filteredAndSortedIssues.length === 0 ? (
+                    <Card className="glass-card">
+                      <CardContent className="p-8 text-center">
+                        <p className="text-muted-foreground">No issues found</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    filteredAndSortedIssues.map((issue, index) => (
+                      <motion.div
+                        key={issue.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                      >
+                        <IssueCard issue={issue} />
+                      </motion.div>
+                    ))
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="reported">
+                <Card className="glass-card mb-4">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Flag className="h-4 w-4 text-red-500" />
+                      <span>Issues flagged by the community for review. Issues with 10+ reports are automatically removed.</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="space-y-4">
+                  {allReportedIssues.length === 0 ? (
+                    <Card className="glass-card">
+                      <CardContent className="p-8 text-center">
+                        <Flag className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+                        <p className="text-muted-foreground">No reported issues</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    allReportedIssues.map((issue, index) => (
+                      <motion.div
+                        key={issue.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                      >
+                        <div className="relative">
+                          <Badge 
+                            variant="destructive" 
+                            className="absolute -top-2 -right-2 z-10"
+                          >
+                            {issue.reportCount} reports
+                          </Badge>
+                          <IssueCard issue={issue} />
+                        </div>
+                      </motion.div>
+                    ))
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </main>

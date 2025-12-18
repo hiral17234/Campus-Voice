@@ -22,15 +22,15 @@ export default function Login() {
   const [nickname, setNickname] = useState('');
   const [isCheckingNickname, setIsCheckingNickname] = useState(false);
   const [nicknameAvailable, setNicknameAvailable] = useState<boolean | null>(null);
-  const { login, checkNicknameAvailable, isAuthenticated } = useAuth();
+  const { login, checkNicknameAvailable, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated - use actual user role, not local state
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate(role === 'student' ? '/feed' : '/admin');
+    if (isAuthenticated && user) {
+      navigate(user.role === 'student' ? '/feed' : '/admin');
     }
-  }, [isAuthenticated, navigate, role]);
+  }, [isAuthenticated, user, navigate]);
 
   // Generate initial nickname
   useEffect(() => {

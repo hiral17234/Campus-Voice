@@ -72,6 +72,14 @@ export interface Report {
   createdAt: Date;
 }
 
+export interface IssueResolution {
+  decision: 'resolved' | 'rejected';
+  correct?: boolean;
+  reason: string;
+  resolvedBy?: string;
+  resolvedAt?: Date;
+}
+
 export interface Issue {
   id: string;
   title: string;
@@ -96,6 +104,7 @@ export interface Issue {
   reports: Report[];
   reportCount: number;
   isReported: boolean; // true when reportCount >= 10
+  resolution?: IssueResolution;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { toast } from 'sonner';
-import { Shield, Users, Lock, Mail, Eye, EyeOff, RefreshCw, User, Check, X } from 'lucide-react';
+import { Shield, Users, Lock, Mail, Eye, EyeOff, RefreshCw, User, Check, X, Loader2 } from 'lucide-react';
 import { UserRole, generateNickname } from '@/types';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 
@@ -22,8 +22,15 @@ export default function Login() {
   const [nickname, setNickname] = useState('');
   const [isCheckingNickname, setIsCheckingNickname] = useState(false);
   const [nicknameAvailable, setNicknameAvailable] = useState<boolean | null>(null);
-  const { login, checkNicknameAvailable } = useAuth();
+  const { login, checkNicknameAvailable, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(role === 'student' ? '/feed' : '/admin');
+    }
+  }, [isAuthenticated, navigate, role]);
 
   // Generate initial nickname
   useEffect(() => {
@@ -39,8 +46,13 @@ export default function Login() {
 
     const timer = setTimeout(async () => {
       setIsCheckingNickname(true);
-      const available = await checkNicknameAvailable(nickname);
-      setNicknameAvailable(available);
+      try {
+        const available = await checkNicknameAvailable(nickname);
+        setNicknameAvailable(available);
+      } catch (error) {
+        console.error('Error checking nickname:', error);
+        setNicknameAvailable(null);
+      }
       setIsCheckingNickname(false);
     }, 500);
 
@@ -49,6 +61,7 @@ export default function Login() {
 
   const handleGenerateNickname = () => {
     setNickname(generateNickname());
+    setNicknameAvailable(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,17 +72,28 @@ export default function Login() {
       return;
     }
 
+    if (role === 'student' && nickname.length < 3) {
+      toast.error('Nickname must be at least 3 characters');
+      return;
+    }
+
     setIsLoading(true);
 
-    const success = await login(role, campusCode, adminEmail, adminPassword, role === 'student' ? nickname : undefined);
+    try {
+      const result = await login(role, campusCode, adminEmail, adminPassword, role === 'student' ? nickname : undefined);
 
-    if (success) {
-      toast.success(role === 'student' ? 'Welcome to CampusVoice!' : 'Admin access granted');
-      navigate(role === 'student' ? '/feed' : '/admin');
-    } else {
-      toast.error(role === 'student' ? 'Invalid campus code' : 'Invalid credentials');
+      if (result.success) {
+        toast.success(role === 'student' ? 'Welcome to CampusVoice!' : 'Admin access granted');
+        navigate(role === 'student' ? '/feed' : '/admin');
+      } else {
+        toast.error(result.error || 'Login failed');
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast.error(error.message || 'Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (
@@ -135,7 +159,7 @@ export default function Login() {
                 }`}
               >
                 <Shield className="h-4 w-4" />
-                Institute
+                Faculty
               </button>
             </div>
 
@@ -168,7 +192,7 @@ export default function Login() {
                         {nickname.length >= 3 && (
                           <div className="absolute right-3 top-1/2 -translate-y-1/2">
                             {isCheckingNickname ? (
-                              <RefreshCw className="h-4 w-4 text-muted-foreground animate-spin" />
+                              <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
                             ) : nicknameAvailable === true ? (
                               <Check className="h-4 w-4 text-green-500" />
                             ) : nicknameAvailable === false ? (
@@ -199,20 +223,24 @@ export default function Login() {
 
               {/* Campus Code - Both roles need this */}
               <div className="space-y-2">
-                <Label htmlFor="campusCode">Campus Access Code</Label>
+                <Label htmlFor="campusCode">
+                  {role === 'student' ? 'Campus Access Code' : 'Faculty Access Code'}
+                </Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="campusCode"
                     type="text"
-                    placeholder="Enter campus code"
+                    placeholder="Enter access code"
                     value={campusCode}
                     onChange={(e) => setCampusCode(e.target.value)}
                     className="pl-10"
                     required
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">Hint: CAMPUS2024</p>
+                <p className="text-xs text-muted-foreground">
+                  {role === 'student' ? 'Hint: CAMPUS2024' : 'Hint: MITS2025'}
+                </p>
               </div>
 
               {/* Admin-specific fields */}
@@ -270,14 +298,10 @@ export default function Login() {
               <Button 
                 type="submit" 
                 className="w-full gradient-primary" 
-                disabled={isLoading || (role === 'student' && nicknameAvailable === false)}
+                disabled={isLoading || (role === 'student' && nicknameAvailable === false) || (role === 'student' && isCheckingNickname)}
               >
                 {isLoading ? (
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                    className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full"
-                  />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                 ) : role === 'student' ? (
                   'Enter Anonymously'
                 ) : (

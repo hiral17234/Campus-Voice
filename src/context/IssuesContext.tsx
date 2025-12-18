@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from 'react';
 import { 
   collection, 
   doc, 
@@ -15,7 +15,7 @@ import {
   increment
 } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
-import { Issue, Comment, IssueStatus, IssueCategory, Stats, TimelineEvent, Report, ReportReason, Notification, UserActivity, IssuePriority, Department } from '@/types';
+import { Issue, Comment, IssueStatus, IssueCategory, Stats, TimelineEvent, Report, ReportReason, Notification, UserActivity, IssuePriority, Department, UserRole } from '@/types';
 
 interface IssuesContextType {
   issues: Issue[];
@@ -24,7 +24,7 @@ interface IssuesContextType {
   notifications: Notification[];
   userActivity: Record<string, UserActivity>;
   isLoading: boolean;
-  addIssue: (issue: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'upvotes' | 'downvotes' | 'votedUsers' | 'timeline' | 'commentCount' | 'status' | 'reports' | 'reportCount' | 'isReported'>) => Promise<void>;
+  addIssue: (issue: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'upvotes' | 'downvotes' | 'votedUsers' | 'timeline' | 'commentCount' | 'status' | 'reports' | 'reportCount' | 'isReported' | 'isDeleted'>) => Promise<void>;
   vote: (issueId: string, userId: string, voteType: 'up' | 'down') => Promise<void>;
   updateStatus: (issueId: string, status: IssueStatus, note?: string, adminId?: string, adminName?: string) => Promise<void>;
   addComment: (issueId: string, comment: Omit<Comment, 'id' | 'createdAt'>) => Promise<void>;
@@ -38,6 +38,7 @@ interface IssuesContextType {
   markAllNotificationsRead: (userId: string) => Promise<void>;
   getUserActivity: (userId: string) => UserActivity;
   addProofDocument: (issueId: string, documentUrl: string) => Promise<void>;
+  restoreIssue: (issueId: string) => Promise<void>;
 }
 
 const IssuesContext = createContext<IssuesContextType | undefined>(undefined);
@@ -48,7 +49,9 @@ function calculateStats(issues: Issue[]): Stats {
   };
   const locationCount: Record<string, number> = {};
 
-  issues.forEach(issue => {
+  const activeIssues = issues.filter(i => !i.isDeleted);
+
+  activeIssues.forEach(issue => {
     categoryCount[issue.category]++;
     locationCount[issue.location] = (locationCount[issue.location] || 0) + 1;
   });
@@ -64,14 +67,15 @@ function calculateStats(issues: Issue[]): Stats {
     .slice(0, 5);
 
   return {
-    totalIssues: issues.length,
-    pending: issues.filter(i => i.status === 'pending' || i.status === 'open' as any).length,
-    underReview: issues.filter(i => i.status === 'under_review').length,
-    approved: issues.filter(i => i.status === 'approved').length,
-    inProgress: issues.filter(i => i.status === 'in_progress').length,
-    resolved: issues.filter(i => i.status === 'resolved').length,
-    rejected: issues.filter(i => i.status === 'rejected').length,
-    reported: issues.filter(i => i.isReported).length,
+    totalIssues: activeIssues.length,
+    pending: activeIssues.filter(i => i.status === 'pending' || i.status === 'open' as any).length,
+    underReview: activeIssues.filter(i => i.status === 'under_review').length,
+    approved: activeIssues.filter(i => i.status === 'approved').length,
+    inProgress: activeIssues.filter(i => i.status === 'in_progress').length,
+    resolved: activeIssues.filter(i => i.status === 'resolved').length,
+    rejected: activeIssues.filter(i => i.status === 'rejected').length,
+    reported: issues.filter(i => i.isReported && !i.isDeleted).length,
+    deleted: issues.filter(i => i.isDeleted).length,
     avgResponseTime: 2.3,
     topCategories,
     hotspotLocations,
@@ -95,6 +99,7 @@ const docToIssue = (id: string, data: any): Issue => ({
   location: data.location || '',
   authorNickname: data.createdByUsername || data.createdByNickname || data.authorNickname || 'Anonymous',
   authorId: data.createdBy || data.authorId || '',
+  authorRole: data.authorRole || data.role || 'student',
   status: mapFirestoreStatus(data.status),
   priority: data.priority,
   assignedDepartment: data.assignedTo ? 'other' : data.assignedDepartment,
@@ -111,9 +116,11 @@ const docToIssue = (id: string, data: any): Issue => ({
   })),
   commentCount: data.commentCount || 0,
   isUrgent: data.urgent || data.isUrgent || false,
+  isOfficial: data.isOfficial || data.authorRole === 'admin',
   reports: data.reports || [],
   reportCount: data.reportCount || 0,
-  isReported: data.isReported || false,
+  isReported: data.isReported || (data.reportCount >= 3),
+  isDeleted: data.isDeleted || (data.reportCount >= 10),
   resolution: data.resolution,
   createdAt: toDate(data.createdAt),
   updatedAt: toDate(data.updatedAt),
@@ -130,6 +137,7 @@ const mapFirestoreStatus = (status: string): IssueStatus => {
     'rejected': 'rejected',
     'pending': 'pending',
     'approved': 'approved',
+    'deleted': 'deleted',
   };
   return statusMap[status] || 'pending';
 };
@@ -138,10 +146,104 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [userActivity, setUserActivity] = useState<Record<string, UserActivity>>({});
   const [stats, setStats] = useState<Stats>(() => calculateStats([]));
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Compute user activity from issues and comments
+  const userActivity = useMemo(() => {
+    const activity: Record<string, UserActivity> = {};
+    
+    // Process issues for votes and posts
+    issues.forEach(issue => {
+      // Track author's posted issues
+      if (issue.authorId) {
+        if (!activity[issue.authorId]) {
+          activity[issue.authorId] = {
+            issuesPosted: [],
+            issuesUpvoted: [],
+            issuesDownvoted: [],
+            issuesCommented: [],
+            issuesReported: [],
+            totalUpvotesReceived: 0,
+            totalDownvotesReceived: 0,
+            totalCommentsReceived: 0,
+          };
+        }
+        activity[issue.authorId].issuesPosted.push(issue.id);
+        activity[issue.authorId].totalUpvotesReceived += issue.upvotes;
+        activity[issue.authorId].totalDownvotesReceived += issue.downvotes;
+        activity[issue.authorId].totalCommentsReceived += issue.commentCount;
+      }
+      
+      // Track voters
+      Object.entries(issue.votedUsers).forEach(([oderId, voteType]) => {
+        if (!activity[oderId]) {
+          activity[oderId] = {
+            issuesPosted: [],
+            issuesUpvoted: [],
+            issuesDownvoted: [],
+            issuesCommented: [],
+            issuesReported: [],
+            totalUpvotesReceived: 0,
+            totalDownvotesReceived: 0,
+            totalCommentsReceived: 0,
+          };
+        }
+        if (voteType === 'up') {
+          if (!activity[oderId].issuesUpvoted.includes(issue.id)) {
+            activity[oderId].issuesUpvoted.push(issue.id);
+          }
+        } else {
+          if (!activity[oderId].issuesDownvoted.includes(issue.id)) {
+            activity[oderId].issuesDownvoted.push(issue.id);
+          }
+        }
+      });
+      
+      // Track reporters
+      issue.reports.forEach(report => {
+        if (!activity[report.reporterId]) {
+          activity[report.reporterId] = {
+            issuesPosted: [],
+            issuesUpvoted: [],
+            issuesDownvoted: [],
+            issuesCommented: [],
+            issuesReported: [],
+            totalUpvotesReceived: 0,
+            totalDownvotesReceived: 0,
+            totalCommentsReceived: 0,
+          };
+        }
+        if (!activity[report.reporterId].issuesReported.includes(issue.id)) {
+          activity[report.reporterId].issuesReported.push(issue.id);
+        }
+      });
+    });
+    
+    // Process comments
+    Object.values(comments).flat().forEach(comment => {
+      if (comment.authorId) {
+        if (!activity[comment.authorId]) {
+          activity[comment.authorId] = {
+            issuesPosted: [],
+            issuesUpvoted: [],
+            issuesDownvoted: [],
+            issuesCommented: [],
+            issuesReported: [],
+            totalUpvotesReceived: 0,
+            totalDownvotesReceived: 0,
+            totalCommentsReceived: 0,
+          };
+        }
+        if (!activity[comment.authorId].issuesCommented.includes(comment.issueId)) {
+          activity[comment.authorId].issuesCommented.push(comment.issueId);
+        }
+      }
+    });
+    
+    return activity;
+  }, [issues, comments]);
 
   // Track auth state
   useEffect(() => {
@@ -192,11 +294,13 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
             issueId: data.issueId,
             authorNickname: data.authorNickname || data.userNickname || 'Anonymous',
             authorId: data.authorId || data.userId || '',
+            authorRole: data.authorRole || (data.isAdminResponse ? 'admin' : 'student'),
             content: data.text || data.content || '',
             mediaUrl: data.mediaUrl,
             mediaType: data.mediaType,
             createdAt: toDate(data.createdAt),
             isAdminResponse: data.isAdminResponse || false,
+            isOfficial: data.isOfficial || data.isAdminResponse || false,
             reports: data.reports || [],
           });
         });
@@ -240,6 +344,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
             createdAt: toDate(data.createdAt),
           };
         });
+        console.log('Loaded notifications:', firestoreNotifications.length);
         setNotifications(firestoreNotifications);
       }, 
       (error) => {
@@ -251,8 +356,6 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
   }, [currentUserId]);
 
   const addNotification = async (userId: string, type: Notification['type'], title: string, message: string, issueId: string) => {
-    if (!currentUserId) return;
-    
     try {
       await addDoc(collection(db, 'notifications'), {
         userId,
@@ -261,14 +364,16 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
         message,
         issueId,
         read: false,
+        isRead: false,
         createdAt: serverTimestamp(),
       });
+      console.log('Notification created for user:', userId);
     } catch (error) {
       console.error('Error adding notification:', error);
     }
   };
 
-  const addIssue = async (issueData: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'upvotes' | 'downvotes' | 'votedUsers' | 'timeline' | 'commentCount' | 'status' | 'reports' | 'reportCount' | 'isReported'>): Promise<void> => {
+  const addIssue = async (issueData: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'upvotes' | 'downvotes' | 'votedUsers' | 'timeline' | 'commentCount' | 'status' | 'reports' | 'reportCount' | 'isReported' | 'isDeleted'>): Promise<void> => {
     if (!currentUserId) {
       throw new Error('You must be logged in to create an issue');
     }
@@ -287,6 +392,8 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       url: url,
     }));
 
+    const isOfficial = issueData.authorRole === 'admin';
+
     try {
       const docRef = await addDoc(collection(db, 'issues'), {
         title: issueData.title,
@@ -298,8 +405,10 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
         
         createdBy: issueData.authorId,
         createdByUsername: issueData.authorNickname,
+        authorRole: issueData.authorRole || 'student',
         anonymous: true,
-        role: 'student',
+        role: issueData.authorRole || 'student',
+        isOfficial: isOfficial,
         
         attachments: attachments,
         mediaUrls: issueData.mediaUrls || [],
@@ -317,6 +426,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
         reports: [],
         reportCount: 0,
         isReported: false,
+        isDeleted: false,
         
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -338,7 +448,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const vote = async (issueId: string, userId: string, voteType: 'up' | 'down') => {
+  const vote = async (issueId: string, oderId: string, voteType: 'up' | 'down') => {
     if (!currentUserId) {
       throw new Error('You must be logged in to vote');
     }
@@ -346,7 +456,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     const issue = issues.find(i => i.id === issueId);
     if (!issue) return;
 
-    const existingVote = issue.votedUsers[userId];
+    const existingVote = issue.votedUsers[oderId];
     let newUpvotes = issue.upvotes;
     let newDownvotes = issue.downvotes;
     const newVotedUsers = { ...issue.votedUsers };
@@ -355,14 +465,14 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       // Remove vote
       if (voteType === 'up') newUpvotes--;
       else newDownvotes--;
-      delete newVotedUsers[userId];
+      delete newVotedUsers[oderId];
     } else {
       // Change or add vote
       if (existingVote === 'up') newUpvotes--;
       if (existingVote === 'down') newDownvotes--;
       if (voteType === 'up') newUpvotes++;
       else newDownvotes++;
-      newVotedUsers[userId] = voteType;
+      newVotedUsers[oderId] = voteType;
     }
 
     try {
@@ -375,7 +485,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
 
       // Update votes collection
       const votesRef = collection(db, 'votes');
-      const voteDocId = `${issueId}_${userId}`;
+      const voteDocId = `${issueId}_${oderId}`;
       
       if (existingVote === voteType) {
         // Remove vote
@@ -388,10 +498,22 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
         // Add or update vote
         await addDoc(votesRef, {
           issueId,
-          userId,
+          oderId,
           type: voteType,
           createdAt: serverTimestamp(),
         });
+      }
+
+      // Send notification on milestone votes
+      const netVotes = newUpvotes - newDownvotes;
+      if ([10, 25, 50, 100].includes(netVotes) && issue.authorId !== oderId) {
+        addNotification(
+          issue.authorId,
+          'vote_milestone',
+          'Vote Milestone!',
+          `Your issue "${issue.title}" reached ${netVotes} votes!`,
+          issueId
+        );
       }
     } catch (error) {
       console.error('Error updating vote:', error);
@@ -460,19 +582,27 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       throw new Error('You must be logged in to comment');
     }
 
+    const isOfficial = commentData.isAdminResponse || commentData.authorRole === 'admin';
+
     try {
       await addDoc(collection(db, 'comments'), {
         issueId,
         authorId: commentData.authorId,
+        userId: commentData.authorId,
         authorNickname: commentData.authorNickname,
+        userNickname: commentData.authorNickname,
+        authorRole: commentData.authorRole || (commentData.isAdminResponse ? 'admin' : 'student'),
         text: commentData.content,
         content: commentData.content,
         mediaUrl: commentData.mediaUrl,
         mediaType: commentData.mediaType,
         isAdminResponse: commentData.isAdminResponse || false,
+        isOfficial: isOfficial,
         reports: [],
         createdAt: serverTimestamp(),
       });
+
+      console.log('Comment saved successfully for issue:', issueId);
 
       // Update comment count on issue
       const issue = issues.find(i => i.id === issueId);
@@ -490,13 +620,13 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
           console.error('Error updating comment count:', e);
         }
 
-        // Send notification if faculty comment
-        if (commentData.isAdminResponse && issue.authorId !== commentData.authorId) {
+        // Send notification to issue author if it's not their own comment
+        if (issue.authorId !== commentData.authorId) {
           addNotification(
             issue.authorId,
-            'faculty_comment',
-            'Faculty Response',
-            `Faculty responded to your issue "${issue.title}"`,
+            commentData.isAdminResponse ? 'faculty_comment' : 'new_comment',
+            commentData.isAdminResponse ? 'Faculty Response' : 'New Comment',
+            `${commentData.authorNickname} commented on your issue "${issue.title}"`,
             issueId
           );
         }
@@ -526,7 +656,9 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     };
 
     const newReports = [...issue.reports, newReport];
-    const shouldFlag = newReports.length >= 3;
+    const newReportCount = newReports.length;
+    const shouldFlag = newReportCount >= 3;
+    const shouldDelete = newReportCount >= 10;
 
     try {
       await updateDoc(doc(db, 'issues', issueId), {
@@ -534,8 +666,10 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
           ...r,
           createdAt: r.createdAt instanceof Date ? Timestamp.fromDate(r.createdAt) : r.createdAt,
         })),
-        reportCount: newReports.length,
+        reportCount: newReportCount,
         isReported: shouldFlag,
+        isDeleted: shouldDelete,
+        ...(shouldDelete && { status: 'deleted' }),
         updatedAt: serverTimestamp(),
       });
 
@@ -571,6 +705,23 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Error deleting issue:', error);
       throw new Error('Failed to delete issue. Please try again.');
+    }
+  };
+
+  const restoreIssue = async (issueId: string) => {
+    if (!currentUserId) {
+      throw new Error('You must be logged in to restore');
+    }
+
+    try {
+      await updateDoc(doc(db, 'issues', issueId), {
+        isDeleted: false,
+        status: 'pending',
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error('Error restoring issue:', error);
+      throw new Error('Failed to restore issue. Please try again.');
     }
   };
 
@@ -647,7 +798,10 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       issuesUpvoted: [], 
       issuesDownvoted: [], 
       issuesCommented: [], 
-      issuesReported: [] 
+      issuesReported: [],
+      totalUpvotesReceived: 0,
+      totalDownvotesReceived: 0,
+      totalCommentsReceived: 0,
     };
   };
 
@@ -692,6 +846,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       markAllNotificationsRead,
       getUserActivity,
       addProofDocument,
+      restoreIssue,
     }}>
       {children}
     </IssuesContext.Provider>

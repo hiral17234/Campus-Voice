@@ -26,7 +26,8 @@ import {
   AlertTriangle,
   Image,
   FileVideo,
-  Shield
+  Shield,
+  TrendingUp
 } from 'lucide-react';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 
@@ -37,7 +38,16 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState('overview');
 
   const activity = useMemo(() => {
-    if (!user) return { issuesPosted: [], issuesUpvoted: [], issuesDownvoted: [], issuesCommented: [], issuesReported: [] };
+    if (!user) return { 
+      issuesPosted: [], 
+      issuesUpvoted: [], 
+      issuesDownvoted: [], 
+      issuesCommented: [], 
+      issuesReported: [],
+      totalUpvotesReceived: 0,
+      totalDownvotesReceived: 0,
+      totalCommentsReceived: 0,
+    };
     return getUserActivity(user.id);
   }, [user, getUserActivity]);
 
@@ -200,6 +210,45 @@ export default function Profile() {
                 </div>
               </div>
 
+              {/* Activity Stats */}
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-4 mt-4">
+                <div className="text-center p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                  <div className="flex items-center justify-center gap-1 text-green-500 mb-1">
+                    <ThumbsUp className="h-4 w-4" />
+                  </div>
+                  <p className="text-xl font-bold text-green-500">{activity.totalUpvotesReceived}</p>
+                  <p className="text-xs text-muted-foreground">Upvotes Received</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <div className="flex items-center justify-center gap-1 text-red-500 mb-1">
+                    <ThumbsDown className="h-4 w-4" />
+                  </div>
+                  <p className="text-xl font-bold text-red-500">{activity.totalDownvotesReceived}</p>
+                  <p className="text-xs text-muted-foreground">Downvotes Received</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <div className="flex items-center justify-center gap-1 text-blue-500 mb-1">
+                    <MessageSquare className="h-4 w-4" />
+                  </div>
+                  <p className="text-xl font-bold text-blue-500">{activity.totalCommentsReceived}</p>
+                  <p className="text-xs text-muted-foreground">Comments</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                  <div className="flex items-center justify-center gap-1 text-purple-500 mb-1">
+                    <TrendingUp className="h-4 w-4" />
+                  </div>
+                  <p className="text-xl font-bold text-purple-500">{activity.issuesUpvoted.length}</p>
+                  <p className="text-xs text-muted-foreground">Issues Upvoted</p>
+                </div>
+                <div className="text-center p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                  <div className="flex items-center justify-center gap-1 text-orange-500 mb-1">
+                    <Flag className="h-4 w-4" />
+                  </div>
+                  <p className="text-xl font-bold text-orange-500">{activity.issuesReported.length}</p>
+                  <p className="text-xs text-muted-foreground">Issues Reported</p>
+                </div>
+              </div>
+
               {/* Resolution Progress */}
               <div className="mt-6">
                 <div className="flex justify-between items-center mb-2">
@@ -219,7 +268,7 @@ export default function Profile() {
           transition={{ delay: 0.1 }}
         >
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-5 w-full">
+            <TabsList className="grid grid-cols-6 w-full">
               <TabsTrigger value="overview" className="text-xs sm:text-sm">
                 <FileText className="h-4 w-4 sm:mr-1" />
                 <span className="hidden sm:inline">My Issues</span>
@@ -235,6 +284,10 @@ export default function Profile() {
               <TabsTrigger value="commented" className="text-xs sm:text-sm">
                 <MessageSquare className="h-4 w-4 sm:mr-1" />
                 <span className="hidden sm:inline">Commented</span>
+              </TabsTrigger>
+              <TabsTrigger value="reported" className="text-xs sm:text-sm">
+                <Flag className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Reported</span>
               </TabsTrigger>
               <TabsTrigger value="media" className="text-xs sm:text-sm">
                 <Image className="h-4 w-4 sm:mr-1" />
@@ -327,6 +380,28 @@ export default function Profile() {
                     </p>
                   ) : (
                     commentedIssues.map(issue => (
+                      <IssueListItem key={issue.id} issue={issue} />
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="reported" className="mt-4">
+              <Card className="glass-card">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Flag className="h-5 w-5 text-orange-500" />
+                    Reported Issues ({reportedIssues.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {reportedIssues.length === 0 ? (
+                    <p className="text-center py-8 text-muted-foreground">
+                      No reported issues
+                    </p>
+                  ) : (
+                    reportedIssues.map(issue => (
                       <IssueListItem key={issue.id} issue={issue} />
                     ))
                   )}

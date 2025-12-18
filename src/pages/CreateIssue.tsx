@@ -11,11 +11,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { CATEGORY_LABELS, IssueCategory } from '@/types';
 import { uploadToCloudinary, getMediaType } from '@/lib/cloudinary';
 import { toast } from 'sonner';
-import { ArrowLeft, MapPin, Image, Video, AlertTriangle, FileText, X, Loader2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Image, Video, AlertTriangle, FileText, X, Loader2, Shield } from 'lucide-react';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 
 interface UploadedMedia {
@@ -42,6 +43,8 @@ export default function CreateIssue() {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
+
+  const isFaculty = user?.role === 'admin';
 
   const handleFileUpload = async (file: File, type: 'image' | 'video' | 'pdf') => {
     // Validate file size (20MB max)
@@ -111,13 +114,15 @@ export default function CreateIssue() {
         location,
         authorNickname: user.nickname!,
         authorId: user.id,
+        authorRole: user.role,
         mediaUrls: uploadedMedia.map(m => m.url),
         mediaTypes: uploadedMedia.map(m => m.type),
         isUrgent,
+        isOfficial: isFaculty,
       });
 
-      toast.success('Issue reported successfully! It will appear in the feed shortly.');
-      navigate('/feed');
+      toast.success(isFaculty ? 'Official issue posted successfully!' : 'Issue reported successfully! It will appear in the feed shortly.');
+      navigate(isFaculty ? '/admin' : '/feed');
     } catch (error: any) {
       console.error('Error creating issue:', error);
       toast.error(error.message || 'Failed to create issue. Please try again.');
@@ -156,15 +161,19 @@ export default function CreateIssue() {
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate('/feed')}>
+              <Button variant="ghost" size="icon" onClick={() => navigate(isFaculty ? '/admin' : '/feed')}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div className="w-10 h-10 rounded-xl overflow-hidden">
                 <img src={campusVoiceLogo} alt="CampusVoice" className="w-full h-full object-contain p-1" />
               </div>
               <div>
-                <h1 className="text-lg font-bold">Report Issue</h1>
-                <p className="text-xs text-muted-foreground">Your voice matters</p>
+                <h1 className="text-lg font-bold">
+                  {isFaculty ? 'Post Official Issue' : 'Report Issue'}
+                </h1>
+                <p className="text-xs text-muted-foreground">
+                  {isFaculty ? 'Official announcement' : 'Your voice matters'}
+                </p>
               </div>
             </div>
             <ThemeToggle />
@@ -178,11 +187,22 @@ export default function CreateIssue() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <Card className="glass-card">
+          <Card className={`glass-card ${isFaculty ? 'border-primary/50' : ''}`}>
             <CardHeader>
-              <CardTitle>Create New Issue</CardTitle>
+              <div className="flex items-center gap-2">
+                {isFaculty && (
+                  <Badge variant="default" className="gap-1">
+                    <Shield className="h-3 w-3" />
+                    Official
+                  </Badge>
+                )}
+                <CardTitle>{isFaculty ? 'Create Official Issue' : 'Create New Issue'}</CardTitle>
+              </div>
               <CardDescription>
-                Describe the problem you've encountered. Your identity will remain anonymous.
+                {isFaculty 
+                  ? 'Post an official announcement or issue. This will be marked as an official post.'
+                  : 'Describe the problem you\'ve encountered. Your identity will remain anonymous.'
+                }
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -191,7 +211,7 @@ export default function CreateIssue() {
                   <Label htmlFor="title">Title *</Label>
                   <Input
                     id="title"
-                    placeholder="Brief summary of the issue"
+                    placeholder={isFaculty ? 'Official announcement title' : 'Brief summary of the issue'}
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     required
@@ -204,7 +224,7 @@ export default function CreateIssue() {
                   <Label htmlFor="description">Description *</Label>
                   <Textarea
                     id="description"
-                    placeholder="Provide detailed information about the issue..."
+                    placeholder={isFaculty ? 'Provide detailed information about this announcement...' : 'Provide detailed information about the issue...'}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     required
@@ -340,12 +360,25 @@ export default function CreateIssue() {
                   <Switch checked={isUrgent} onCheckedChange={setIsUrgent} />
                 </motion.div>
 
+                {/* Faculty Official Notice */}
+                {isFaculty && (
+                  <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/10 border border-primary/20">
+                    <Shield className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-medium text-sm">Official Post</p>
+                      <p className="text-xs text-muted-foreground">
+                        This will be marked as an official faculty post and highlighted in the feed.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-3">
                   <Button
                     type="button"
                     variant="outline"
                     className="flex-1"
-                    onClick={() => navigate('/feed')}
+                    onClick={() => navigate(isFaculty ? '/admin' : '/feed')}
                   >
                     Cancel
                   </Button>
@@ -354,7 +387,7 @@ export default function CreateIssue() {
                     className="flex-1 gradient-primary"
                     disabled={isSubmitting || isUploading || !title || !description || !category || !location}
                   >
-                    {isSubmitting ? 'Submitting...' : 'Submit Issue'}
+                    {isSubmitting ? 'Submitting...' : isFaculty ? 'Post Official Issue' : 'Submit Issue'}
                   </Button>
                 </div>
               </form>

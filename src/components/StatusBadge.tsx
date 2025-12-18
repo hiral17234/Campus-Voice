@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import { IssueStatus, STATUS_LABELS, STATUS_COLORS } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, AlertCircle, Clock, Wrench, XCircle, ThumbsUp } from 'lucide-react';
+import { CheckCircle, AlertCircle, Clock, Wrench, XCircle, ThumbsUp, Trash2 } from 'lucide-react';
 
 interface StatusBadgeProps {
   status: IssueStatus;
@@ -15,6 +15,7 @@ const statusConfig: Record<IssueStatus, { icon: typeof CheckCircle }> = {
   in_progress: { icon: Wrench },
   resolved: { icon: CheckCircle },
   rejected: { icon: XCircle },
+  deleted: { icon: Trash2 },
 };
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {

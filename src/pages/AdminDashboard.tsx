@@ -101,8 +101,8 @@ export default function AdminDashboard() {
     return filtered;
   }, [issues, reportedIssues, activeTab, searchQuery, statusFilter, categoryFilter, priorityFilter, sortBy]);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 

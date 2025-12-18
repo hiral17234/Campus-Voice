@@ -23,7 +23,7 @@ interface IssuesContextType {
   stats: Stats;
   notifications: Notification[];
   userActivity: Record<string, UserActivity>;
-  addIssue: (issue: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'upvotes' | 'downvotes' | 'votedUsers' | 'timeline' | 'commentCount' | 'status' | 'reports' | 'reportCount' | 'isReported'>) => void;
+  addIssue: (issue: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'upvotes' | 'downvotes' | 'votedUsers' | 'timeline' | 'commentCount' | 'status' | 'reports' | 'reportCount' | 'isReported'>) => Promise<void>;
   vote: (issueId: string, userId: string, voteType: 'up' | 'down') => void;
   updateStatus: (issueId: string, status: IssueStatus, note?: string, adminId?: string, adminName?: string) => void;
   addComment: (issueId: string, comment: Omit<Comment, 'id' | 'createdAt'>) => void;
@@ -458,12 +458,12 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const addIssue = async (issueData: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'upvotes' | 'downvotes' | 'votedUsers' | 'timeline' | 'commentCount' | 'status' | 'reports' | 'reportCount' | 'isReported'>) => {
+  const addIssue = async (issueData: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'upvotes' | 'downvotes' | 'votedUsers' | 'timeline' | 'commentCount' | 'status' | 'reports' | 'reportCount' | 'isReported'>): Promise<void> => {
     const now = new Date();
     const initialTimeline = [{ id: crypto.randomUUID(), status: 'pending' as IssueStatus, timestamp: now, note: 'Issue reported' }];
     
     try {
-      await addDoc(collection(db, 'issues'), {
+      const docRef = await addDoc(collection(db, 'issues'), {
         title: issueData.title,
         description: issueData.description,
         category: issueData.category,
@@ -489,27 +489,12 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
-    } catch (error) {
+      console.log('Issue created with ID:', docRef.id);
+      updateUserActivity(issueData.authorId, 'issuesPosted', issueData.authorId);
+    } catch (error: any) {
       console.error('Error adding issue to Firestore:', error);
-      // Fallback to local
-      const newIssue: Issue = {
-        ...issueData,
-        id: crypto.randomUUID(),
-        status: 'pending',
-        upvotes: 0,
-        downvotes: 0,
-        votedUsers: {},
-        timeline: initialTimeline,
-        commentCount: 0,
-        reports: [],
-        reportCount: 0,
-        isReported: false,
-        createdAt: now,
-        updatedAt: now,
-      };
-      setIssues(prev => [newIssue, ...prev]);
+      throw new Error('Failed to save issue to database. Please try again.');
     }
-    updateUserActivity(issueData.authorId, 'issuesPosted', issueData.authorId);
   };
 
   const vote = async (issueId: string, userId: string, voteType: 'up' | 'down') => {

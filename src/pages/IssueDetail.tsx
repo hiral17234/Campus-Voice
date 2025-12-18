@@ -10,6 +10,7 @@ import { VoteButtons } from '@/components/VoteButtons';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ReportModal } from '@/components/ReportModal';
 import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
+import { MediaGallery } from '@/components/MediaGallery';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -31,7 +32,8 @@ import {
   Shield,
   Trash2,
   Info,
-  Building2
+  Building2,
+  Image
 } from 'lucide-react';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 
@@ -234,6 +236,20 @@ export default function IssueDetail() {
 
                       <h1 className="text-2xl font-bold mb-3">{issue.title}</h1>
                       <p className="text-muted-foreground whitespace-pre-wrap mb-4">{issue.description}</p>
+
+                      {/* Media Gallery */}
+                      {issue.mediaUrls && issue.mediaUrls.length > 0 && (
+                        <div className="mb-4">
+                          <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                            <Image className="h-4 w-4" />
+                            Attachments ({issue.mediaUrls.length})
+                          </p>
+                          <MediaGallery 
+                            mediaUrls={issue.mediaUrls} 
+                            mediaTypes={issue.mediaTypes} 
+                          />
+                        </div>
+                      )}
 
                       <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">

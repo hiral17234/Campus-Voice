@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useIssues } from '@/context/IssuesContext';
 import { IssueCard } from '@/components/IssueCard';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { LogoutWarningModal } from '@/components/LogoutWarningModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -37,6 +38,7 @@ export default function StudentFeed() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showLogoutWarning, setShowLogoutWarning] = useState(false);
 
   const unreadNotifications = notifications.filter(n => n.userId === user?.id && !n.isRead).length;
 
@@ -74,6 +76,14 @@ export default function StudentFeed() {
     }
     return [...filtered].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }, [issues, sortBy, categoryFilter, statusFilter, searchQuery]);
+
+  const handleLogoutClick = () => {
+    if (user?.role === 'student') {
+      setShowLogoutWarning(true);
+    } else {
+      handleLogout();
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -136,13 +146,20 @@ export default function StudentFeed() {
                 <User className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">{user?.nickname}</span>
               </Button>
-              <Button variant="ghost" size="icon" onClick={handleLogout}>
+              <Button variant="ghost" size="icon" onClick={handleLogoutClick}>
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </div>
       </header>
+
+      {/* Logout Warning Modal */}
+      <LogoutWarningModal
+        isOpen={showLogoutWarning}
+        onClose={() => setShowLogoutWarning(false)}
+        onConfirm={handleLogout}
+      />
 
       <main className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

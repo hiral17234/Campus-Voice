@@ -289,7 +289,7 @@ export default function Login() {
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
-                      <p className="text-xs text-muted-foreground">Hint: admin@institute.edu / admin123</p>
+                      <p className="text-xs text-muted-foreground">Hint: admin@institute.edu / Admin9302@</p>
                     </div>
                   </motion.div>
                 )}

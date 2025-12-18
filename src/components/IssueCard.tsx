@@ -18,18 +18,23 @@ interface IssueCardProps {
 
 export function IssueCard({ issue }: IssueCardProps) {
   const { user } = useAuth();
-  const { vote } = useIssues();
+  const { vote, comments } = useIssues();
   const navigate = useNavigate();
 
-  const handleVote = (type: 'up' | 'down') => {
+  const handleVote = async (type: 'up' | 'down') => {
     if (user) {
-      vote(issue.id, user.id, type);
+      try {
+        await vote(issue.id, user.id, type);
+      } catch (error) {
+        console.error('Vote error:', error);
+      }
     }
   };
 
   const userVote = user ? issue.votedUsers[user.id] : null;
   const netVotes = issue.upvotes - issue.downvotes;
   const hasMedia = issue.mediaUrls && issue.mediaUrls.length > 0;
+  const actualCommentCount = comments[issue.id]?.length || issue.commentCount || 0;
 
   return (
     <motion.div
@@ -104,7 +109,7 @@ export function IssueCard({ issue }: IssueCardProps) {
                 </span>
                 <span className="flex items-center gap-1">
                   <MessageSquare className="h-3 w-3" />
-                  {issue.commentCount} comments
+                  {actualCommentCount} comments
                 </span>
                 <span className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />

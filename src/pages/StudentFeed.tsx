@@ -213,10 +213,14 @@ export default function StudentFeed() {
                     CampusAssist
                     <span className="ml-auto text-xs text-muted-foreground">Soon</span>
                   </Button>
-                  <Button variant="outline" className="w-full justify-start" disabled>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start" 
+                    onClick={() => window.open('https://golden-note-hub.lovable.app', '_blank')}
+                  >
                     <BookOpen className="h-4 w-4 mr-2 text-blue-500" />
                     NoteHall
-                    <span className="ml-auto text-xs text-muted-foreground">Soon</span>
+                    <span className="ml-auto text-xs text-muted-foreground">Live</span>
                   </Button>
                   <Button variant="outline" className="w-full justify-start" disabled>
                     <Sparkles className="h-4 w-4 mr-2 text-purple-500" />

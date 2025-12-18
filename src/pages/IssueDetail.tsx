@@ -62,25 +62,35 @@ export default function IssueDetail() {
     );
   }
 
-  const handleVote = (type: 'up' | 'down') => {
+  const handleVote = async (type: 'up' | 'down') => {
     if (user) {
-      vote(issue.id, user.id, type);
+      try {
+        await vote(issue.id, user.id, type);
+      } catch (error: any) {
+        console.error('Vote error:', error);
+        toast.error(error.message || 'Failed to vote');
+      }
     }
   };
 
-  const handleComment = () => {
+  const handleComment = async () => {
     if (!newComment.trim() || !user) return;
     
-    addComment(issue.id, {
-      issueId: issue.id,
-      authorNickname: user.nickname!,
-      authorId: user.id,
-      content: newComment.trim(),
-      isAdminResponse: user.role === 'admin',
-    });
-    
-    setNewComment('');
-    toast.success('Comment added');
+    try {
+      await addComment(issue.id, {
+        issueId: issue.id,
+        authorNickname: user.nickname!,
+        authorId: user.id,
+        content: newComment.trim(),
+        isAdminResponse: user.role === 'admin',
+      });
+      
+      setNewComment('');
+      toast.success('Comment added');
+    } catch (error: any) {
+      console.error('Error adding comment:', error);
+      toast.error(error.message || 'Failed to add comment');
+    }
   };
 
   const handleReportIssue = (reason: ReportReason, customReason?: string) => {
@@ -281,7 +291,7 @@ export default function IssueDetail() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MessageSquare className="h-5 w-5" />
-                    Comments ({issue.commentCount})
+                    Comments ({issueComments.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">

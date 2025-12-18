@@ -151,14 +151,8 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  // Subscribe to Firestore issues collection - wait for auth
+  // Subscribe to Firestore issues collection - issues are public, no auth needed
   useEffect(() => {
-    // Wait for user to be authenticated before subscribing
-    if (!currentUserId) {
-      setIsLoading(false);
-      return;
-    }
-
     const issuesRef = collection(db, 'issues');
     const q = query(issuesRef, orderBy('createdAt', 'desc'));
     
@@ -177,15 +171,10 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     );
 
     return () => unsubscribe();
-  }, [currentUserId]);
+  }, []);
 
-  // Subscribe to comments - need auth
+  // Subscribe to comments - comments are public, no auth needed
   useEffect(() => {
-    if (!currentUserId) {
-      setComments({});
-      return;
-    }
-
     const commentsRef = collection(db, 'comments');
     const q = query(commentsRef, orderBy('createdAt', 'asc'));
     
@@ -220,7 +209,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     );
 
     return () => unsubscribe();
-  }, [currentUserId]);
+  }, []);
 
   // Subscribe to notifications for current user
   useEffect(() => {

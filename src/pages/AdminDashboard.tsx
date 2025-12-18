@@ -58,7 +58,8 @@ export default function AdminDashboard() {
 
   const unreadNotifications = notifications.filter(n => n.userId === user?.id && !n.isRead).length;
 
-  const reportedIssues = useMemo(() => issues.filter(i => i.isReported && !i.isDeleted), [issues]);
+  // Show issues with any reports (reportCount > 0) not just isReported (which requires 3+)
+  const reportedIssues = useMemo(() => issues.filter(i => (i.reportCount > 0 || i.isReported) && !i.isDeleted), [issues]);
   const deletedIssues = useMemo(() => issues.filter(i => i.isDeleted), [issues]);
 
   const filteredIssues = useMemo(() => {
@@ -201,10 +202,15 @@ export default function AdminDashboard() {
                 )}
               </Button>
               <ThemeToggle />
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary">
-                <Users className="h-4 w-4 text-secondary-foreground" />
-                <span className="text-sm font-medium text-secondary-foreground">{user?.nickname || 'Admin'}</span>
-              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => navigate('/profile')}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full"
+              >
+                <Users className="h-4 w-4" />
+                <span className="text-sm font-medium">{user?.nickname || 'Admin'}</span>
+              </Button>
               <Button variant="ghost" size="icon" onClick={handleLogout}>
                 <LogOut className="h-4 w-4" />
               </Button>

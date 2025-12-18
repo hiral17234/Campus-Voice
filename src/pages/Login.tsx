@@ -84,16 +84,17 @@ export default function Login() {
 
       if (result.success) {
         toast.success(role === 'student' ? 'Welcome to CampusVoice!' : 'Admin access granted');
-        navigate(role === 'student' ? '/feed' : '/admin');
+        // Don't navigate here - let the useEffect handle it when isAuthenticated updates
       } else {
         toast.error(result.error || 'Login failed');
+        setIsLoading(false);
       }
     } catch (error: any) {
       console.error('Login error:', error);
       toast.error(error.message || 'Login failed. Please try again.');
-    } finally {
       setIsLoading(false);
     }
+    // Don't set isLoading to false on success - keep loading until redirect happens
   };
 
   return (

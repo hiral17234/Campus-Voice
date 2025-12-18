@@ -63,7 +63,7 @@ function AppRoutes() {
       <Route 
         path="/create" 
         element={
-          <ProtectedRoute requiredRole="student">
+          <ProtectedRoute>
             <CreateIssue />
           </ProtectedRoute>
         } 

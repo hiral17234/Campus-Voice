@@ -29,7 +29,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const FACULTY_CREDENTIALS = {
   email: 'admin@institute.edu',
-  password: 'admin123'
+  password: 'Admin9302@'
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -44,10 +44,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const normalizedNickname = nickname.toLowerCase().trim();
       const usernameDoc = await getDoc(doc(db, 'usernames', normalizedNickname));
       return !usernameDoc.exists();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error checking nickname:', error);
-      // Return false to be safe - don't allow if can't verify
-      return false;
+      // If permission denied (not logged in yet), assume available
+      // The transaction during signup will handle the actual uniqueness check
+      if (error?.code === 'permission-denied') {
+        return true;
+      }
+      // For other errors, assume available and let transaction handle it
+      return true;
     }
   };
 

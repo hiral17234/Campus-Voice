@@ -151,15 +151,21 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  // Subscribe to Firestore issues collection - only when authenticated
+  // Subscribe to Firestore issues collection - wait for auth
   useEffect(() => {
-    // Always try to load issues (public read for issues)
+    // Wait for user to be authenticated before subscribing
+    if (!currentUserId) {
+      setIsLoading(false);
+      return;
+    }
+
     const issuesRef = collection(db, 'issues');
     const q = query(issuesRef, orderBy('createdAt', 'desc'));
     
     const unsubscribe = onSnapshot(q, 
       (snapshot) => {
         const firestoreIssues = snapshot.docs.map(doc => docToIssue(doc.id, doc.data()));
+        console.log('Loaded issues from Firestore:', firestoreIssues.length);
         setIssues(firestoreIssues);
         setStats(calculateStats(firestoreIssues));
         setIsLoading(false);
@@ -171,11 +177,14 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [currentUserId]);
 
   // Subscribe to comments - need auth
   useEffect(() => {
-    if (!currentUserId) return;
+    if (!currentUserId) {
+      setComments({});
+      return;
+    }
 
     const commentsRef = collection(db, 'comments');
     const q = query(commentsRef, orderBy('createdAt', 'asc'));
@@ -202,6 +211,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
             reports: data.reports || [],
           });
         });
+        console.log('Loaded comments from Firestore:', Object.keys(firestoreComments).length, 'issues with comments');
         setComments(firestoreComments);
       }, 
       (error) => {

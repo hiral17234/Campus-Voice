@@ -5,9 +5,11 @@ import { CategoryBadge } from './CategoryBadge';
 import { PriorityBadge } from './PriorityBadge';
 import { VoteButtons } from './VoteButtons';
 import { MediaGallery } from './MediaGallery';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/context/AuthContext';
 import { useIssues } from '@/context/IssuesContext';
-import { MapPin, MessageSquare, Clock, AlertTriangle, Flag, Image } from 'lucide-react';
+import { MapPin, MessageSquare, Clock, AlertTriangle, Flag, Image, Info, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
@@ -44,7 +46,7 @@ export function IssueCard({ issue }: IssueCardProps) {
       transition={{ duration: 0.2 }}
     >
       <Card 
-        className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer glass-card"
+        className={`overflow-hidden hover:shadow-lg transition-shadow cursor-pointer glass-card ${issue.isOfficial ? 'border-primary/50' : ''}`}
         onClick={() => navigate(`/issue/${issue.id}`)}
       >
         <CardContent className="p-0">
@@ -60,12 +62,33 @@ export function IssueCard({ issue }: IssueCardProps) {
                 userVote={userVote}
                 onVote={handleVote}
               />
+              {/* Vote Info Tooltip */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="mt-1 p-1 text-muted-foreground hover:text-foreground transition-colors">
+                    <Info className="h-3 w-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <div className="text-xs">
+                    <p className="text-green-500">↑ {issue.upvotes} upvotes</p>
+                    <p className="text-red-500">↓ {issue.downvotes} downvotes</p>
+                    <p className="text-muted-foreground mt-1">Net: {netVotes}</p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
             </div>
 
             {/* Content */}
             <div className="flex-1 p-4">
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="flex flex-wrap gap-2 items-center">
+                  {issue.isOfficial && (
+                    <Badge variant="default" className="text-xs flex items-center gap-1">
+                      <Shield className="h-3 w-3" />
+                      Official
+                    </Badge>
+                  )}
                   <CategoryBadge category={issue.category} />
                   <StatusBadge status={issue.status} />
                   {issue.priority && <PriorityBadge priority={issue.priority} />}
@@ -75,16 +98,25 @@ export function IssueCard({ issue }: IssueCardProps) {
                       Urgent
                     </span>
                   )}
-                  {issue.isReported && (
-                    <span className="flex items-center gap-1 text-xs text-red-500 font-medium">
-                      <Flag className="h-3 w-3" />
-                      Reported
-                    </span>
+                  {issue.reportCount > 0 && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className={`flex items-center gap-1 text-xs font-medium ${issue.isReported ? 'text-red-500' : 'text-orange-500'}`}>
+                          <Flag className="h-3 w-3" />
+                          {issue.reportCount}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">{issue.reportCount} report{issue.reportCount !== 1 ? 's' : ''}</p>
+                        {issue.reportCount >= 3 && <p className="text-xs text-red-500">Flagged for review</p>}
+                        {issue.reportCount >= 10 && <p className="text-xs text-red-500">Auto-deleted at 10 reports</p>}
+                      </TooltipContent>
+                    </Tooltip>
                   )}
                   {hasMedia && (
                     <span className="flex items-center gap-1 text-xs text-primary font-medium">
                       <Image className="h-3 w-3" />
-                      {issue.mediaUrls.length} media
+                      {issue.mediaUrls.length}
                     </span>
                   )}
                 </div>

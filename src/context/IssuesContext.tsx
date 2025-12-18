@@ -20,6 +20,7 @@ import {
   Timestamp,
   where,
   increment,
+  arrayUnion,
 } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import {
@@ -39,6 +40,20 @@ import {
 
 /* ================= CONTEXT ================= */
 
+interface CreateIssueData {
+  title: string;
+  description: string;
+  category: IssueCategory;
+  location: string;
+  authorNickname: string;
+  authorId: string;
+  authorRole?: string;
+  mediaUrls?: string[];
+  mediaTypes?: ('image' | 'audio' | 'video' | 'pdf')[];
+  isUrgent?: boolean;
+  isOfficial?: boolean;
+}
+
 interface IssuesContextType {
   issues: Issue[];
   comments: Record<string, Comment[]>;
@@ -46,7 +61,7 @@ interface IssuesContextType {
   stats: Stats;
   isLoading: boolean;
 
-  addIssue: (data: Omit<Issue, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  addIssue: (data: CreateIssueData) => Promise<void>;
   addComment: (issueId: string, data: Omit<Comment, 'id' | 'createdAt'>) => Promise<void>;
   vote: (issueId: string, userId: string, type: 'up' | 'down') => Promise<void>;
   updateStatus: (
@@ -60,6 +75,15 @@ interface IssuesContextType {
   markNotificationRead: (id: string) => Promise<void>;
   markAllNotificationsRead: (userId: string) => Promise<void>;
   getIssueById: (id: string) => Issue | undefined;
+  
+  // Additional functions
+  reportIssue: (issueId: string, userId: string, reason: ReportReason, customReason?: string) => Promise<void>;
+  reportComment: (issueId: string, commentId: string, userId: string, reason: ReportReason, customReason?: string) => Promise<void>;
+  deleteIssue: (issueId: string, userId: string) => Promise<boolean>;
+  setIssuePriority: (issueId: string, priority: IssuePriority) => Promise<void>;
+  assignDepartment: (issueId: string, department: Department, customDepartment?: string) => Promise<void>;
+  restoreIssue: (issueId: string) => Promise<void>;
+  getUserActivity: (userId: string) => UserActivity;
 }
 
 const IssuesContext = createContext<IssuesContextType | undefined>(undefined);
@@ -117,7 +141,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
             category: data.category,
             location: data.location,
             authorId: data.createdBy,
-            authorNickname: data.createdByUsername,
+            authorNickname: data.createdByUsername || data.authorNickname,
             authorRole: data.authorRole,
             status: mapStatus(data.status),
             priority: data.priority,
@@ -128,11 +152,14 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
             votedUsers: data.votedUsers || {},
             mediaUrls: data.mediaUrls || [],
             mediaTypes: data.mediaTypes || [],
-            timeline: (data.timeline || []).map((t: any) => ({
+            timeline: (data.timeline || []).map((t: any, idx: number) => ({
+              id: t.id || `timeline-${idx}`,
               ...t,
               timestamp: toDate(t.timestamp),
             })),
             commentCount: data.commentCount || 0,
+            isUrgent: data.isUrgent || false,
+            isOfficial: data.isOfficial || false,
             reports: data.reports || [],
             reportCount: data.reportCount || 0,
             isReported: data.isReported || false,
@@ -172,11 +199,13 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
           authorId: data.authorId,
           authorNickname: data.authorNickname,
           authorRole: data.authorRole,
-          content: data.text,
+          content: data.text || data.content,
           mediaUrl: data.mediaUrl,
           mediaType: data.mediaType,
           createdAt: toDate(data.createdAt),
           isOfficial: data.isOfficial || false,
+          isAdminResponse: data.isAdminResponse || data.isOfficial || false,
+          reports: data.reports || [],
         });
       });
 
@@ -215,8 +244,18 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     if (!currentUserId) throw new Error('Not authenticated');
 
     await addDoc(collection(db, 'issues'), {
-      ...data,
-      createdBy: currentUserId,
+      title: data.title,
+      description: data.description,
+      category: data.category,
+      location: data.location,
+      authorNickname: data.authorNickname,
+      authorRole: data.authorRole,
+      mediaUrls: data.mediaUrls || [],
+      mediaTypes: data.mediaTypes || [],
+      isUrgent: data.isUrgent || false,
+      isOfficial: data.isOfficial || false,
+      createdBy: data.authorId || currentUserId,
+      createdByUsername: data.authorNickname,
       upvotes: 0,
       downvotes: 0,
       votedUsers: {},
@@ -228,6 +267,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       status: 'open',
       timeline: [
         {
+          id: `timeline-${Date.now()}`,
           status: 'pending',
           note: 'Issue created',
           timestamp: serverTimestamp(),
@@ -239,6 +279,8 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
 
     await updateDoc(doc(db, 'users', currentUserId), {
       issueCount: increment(1),
+    }).catch(() => {
+      // User doc might not exist, ignore
     });
   };
 
@@ -253,7 +295,9 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       text: data.content,
       mediaUrl: data.mediaUrl,
       mediaType: data.mediaType,
-     isOfficial: (data.authorRole || 'student') === 'admin',
+      isOfficial: data.isOfficial || (data.authorRole || 'student') === 'admin',
+      isAdminResponse: data.isAdminResponse || false,
+      reports: [],
       createdAt: serverTimestamp(),
     });
 
@@ -261,10 +305,11 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       commentCount: increment(1),
     });
 
-    if (data.authorId !== issues.find((i) => i.id === issueId)?.authorId) {
+    const issue = issues.find((i) => i.id === issueId);
+    if (issue && data.authorId !== issue.authorId) {
       await addDoc(collection(db, 'notifications'), {
-        userId: issues.find((i) => i.id === issueId)?.authorId,
-        type: 'comment',
+        userId: issue.authorId,
+        type: 'new_comment',
         title: 'New Comment',
         message: `${data.authorNickname} commented on your issue`,
         issueId,
@@ -314,8 +359,12 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     await updateDoc(doc(db, 'issues', issueId), {
       status,
       timeline: [
-        ...issue.timeline,
+        ...issue.timeline.map(t => ({
+          ...t,
+          timestamp: t.timestamp instanceof Date ? Timestamp.fromDate(t.timestamp) : t.timestamp,
+        })),
         {
+          id: `timeline-${Date.now()}`,
           status,
           note,
           adminId,
@@ -328,7 +377,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
 
     await addDoc(collection(db, 'notifications'), {
       userId: issue.authorId,
-      type: 'status',
+      type: 'status_change',
       title: 'Issue Updated',
       message: `Status changed to ${status}`,
       issueId,
@@ -336,6 +385,140 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       createdAt: serverTimestamp(),
     });
   };
+
+  const reportIssue = async (issueId: string, userId: string, reason: ReportReason, customReason?: string) => {
+    const issue = issues.find((i) => i.id === issueId);
+    if (!issue) throw new Error('Issue not found');
+    
+    if (issue.reports.some(r => r.reporterId === userId)) {
+      throw new Error('You have already reported this issue');
+    }
+
+    const newReport: Report = {
+      id: `report-${Date.now()}`,
+      reporterId: userId,
+      reason,
+      customReason,
+      createdAt: new Date(),
+    };
+
+    const newReportCount = (issue.reportCount || 0) + 1;
+    const isReported = newReportCount >= 3;
+    const isDeleted = newReportCount >= 10;
+
+    await updateDoc(doc(db, 'issues', issueId), {
+      reports: arrayUnion({
+        ...newReport,
+        createdAt: serverTimestamp(),
+      }),
+      reportCount: increment(1),
+      isReported,
+      isDeleted,
+      updatedAt: serverTimestamp(),
+    });
+  };
+
+  const reportComment = async (issueId: string, commentId: string, userId: string, reason: ReportReason, customReason?: string) => {
+    const newReport = {
+      id: `report-${Date.now()}`,
+      reporterId: userId,
+      reason,
+      customReason,
+      createdAt: serverTimestamp(),
+    };
+
+    await updateDoc(doc(db, 'comments', commentId), {
+      reports: arrayUnion(newReport),
+    });
+  };
+
+  const deleteIssue = async (issueId: string, userId: string): Promise<boolean> => {
+    const issue = issues.find((i) => i.id === issueId);
+    if (!issue) return false;
+    
+    // Only author can delete their own pending issues
+    if (issue.authorId !== userId || issue.status !== 'pending') {
+      return false;
+    }
+
+    await updateDoc(doc(db, 'issues', issueId), {
+      isDeleted: true,
+      status: 'deleted',
+      updatedAt: serverTimestamp(),
+    });
+
+    return true;
+  };
+
+  const setIssuePriority = async (issueId: string, priority: IssuePriority) => {
+    await updateDoc(doc(db, 'issues', issueId), {
+      priority,
+      updatedAt: serverTimestamp(),
+    });
+  };
+
+  const assignDepartment = async (issueId: string, department: Department, customDepartment?: string) => {
+    await updateDoc(doc(db, 'issues', issueId), {
+      assignedDepartment: department,
+      customDepartment: customDepartment || null,
+      updatedAt: serverTimestamp(),
+    });
+  };
+
+  const restoreIssue = async (issueId: string) => {
+    const issue = issues.find((i) => i.id === issueId);
+    if (!issue) throw new Error('Issue not found');
+
+    await updateDoc(doc(db, 'issues', issueId), {
+      isDeleted: false,
+      isReported: false,
+      reports: [],
+      reportCount: 0,
+      status: 'pending',
+      updatedAt: serverTimestamp(),
+    });
+  };
+
+  const getUserActivity = useCallback((userId: string): UserActivity => {
+    const userIssues = issues.filter(i => i.authorId === userId);
+    const upvotedIssues = issues.filter(i => i.votedUsers[userId] === 'up').map(i => i.id);
+    const downvotedIssues = issues.filter(i => i.votedUsers[userId] === 'down').map(i => i.id);
+    
+    // Find issues where user has commented
+    const commentedIssueIds: string[] = [];
+    Object.entries(comments).forEach(([issueId, issueComments]) => {
+      if (issueComments.some(c => c.authorId === userId)) {
+        commentedIssueIds.push(issueId);
+      }
+    });
+
+    // Find issues user has reported
+    const reportedIssueIds = issues
+      .filter(i => i.reports.some(r => r.reporterId === userId))
+      .map(i => i.id);
+
+    // Calculate totals received on user's issues
+    let totalUpvotesReceived = 0;
+    let totalDownvotesReceived = 0;
+    let totalCommentsReceived = 0;
+
+    userIssues.forEach(issue => {
+      totalUpvotesReceived += issue.upvotes;
+      totalDownvotesReceived += issue.downvotes;
+      totalCommentsReceived += issue.commentCount;
+    });
+
+    return {
+      issuesPosted: userIssues.map(i => i.id),
+      issuesUpvoted: upvotedIssues,
+      issuesDownvoted: downvotedIssues,
+      issuesCommented: commentedIssueIds,
+      issuesReported: reportedIssueIds,
+      totalUpvotesReceived,
+      totalDownvotesReceived,
+      totalCommentsReceived,
+    };
+  }, [issues, comments]);
 
   const markNotificationRead = async (id: string) => {
     await updateDoc(doc(db, 'notifications', id), { isRead: true });
@@ -387,6 +570,13 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
         markNotificationRead,
         markAllNotificationsRead,
         getIssueById,
+        reportIssue,
+        reportComment,
+        deleteIssue,
+        setIssuePriority,
+        assignDepartment,
+        restoreIssue,
+        getUserActivity,
       }}
     >
       {children}

@@ -27,7 +27,8 @@ import {
   BookOpen,
   Zap,
   Sparkles,
-  Flag
+  Flag,
+  Shield
 } from 'lucide-react';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 
@@ -57,6 +58,11 @@ export default function StudentFeed() {
     return issues.filter(i => (i.reportCount > 0 || i.isReported) && !i.isDeleted);
   }, [issues]);
 
+  // All official issues (from faculty)
+  const officialIssues = useMemo(() => {
+    return issues.filter(i => i.isOfficial && !i.isDeleted && !i.isReported);
+  }, [issues]);
+
   const filteredAndSortedIssues = useMemo(() => {
     // Only show non-reported, non-deleted issues in main feed
     let filtered = issues.filter(i => !i.isReported && !i.isDeleted);
@@ -82,15 +88,33 @@ export default function StudentFeed() {
       filtered = filtered.filter((issue) => issue.status === statusFilter);
     }
 
-    // Sort
+    // Sort with official posts (< 24h old) at top
+    const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
+    
     if (sortBy === 'hot') {
       return [...filtered].sort((a, b) => {
+        // Official posts from last 24h always on top
+        const aIsRecentOfficial = a.isOfficial && a.createdAt.getTime() > twentyFourHoursAgo;
+        const bIsRecentOfficial = b.isOfficial && b.createdAt.getTime() > twentyFourHoursAgo;
+        
+        if (aIsRecentOfficial && !bIsRecentOfficial) return -1;
+        if (!aIsRecentOfficial && bIsRecentOfficial) return 1;
+        
         const scoreA = (a.upvotes - a.downvotes) / Math.pow((Date.now() - a.createdAt.getTime()) / 3600000 + 2, 1.5);
         const scoreB = (b.upvotes - b.downvotes) / Math.pow((Date.now() - b.createdAt.getTime()) / 3600000 + 2, 1.5);
         return scoreB - scoreA;
       });
     }
-    return [...filtered].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return [...filtered].sort((a, b) => {
+      // Official posts from last 24h always on top
+      const aIsRecentOfficial = a.isOfficial && a.createdAt.getTime() > twentyFourHoursAgo;
+      const bIsRecentOfficial = b.isOfficial && b.createdAt.getTime() > twentyFourHoursAgo;
+      
+      if (aIsRecentOfficial && !bIsRecentOfficial) return -1;
+      if (!aIsRecentOfficial && bIsRecentOfficial) return 1;
+      
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    });
   }, [issues, sortBy, categoryFilter, statusFilter, searchQuery]);
 
   const handleLogoutClick = () => {
@@ -257,6 +281,15 @@ export default function StudentFeed() {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="mb-4">
                 <TabsTrigger value="feed">All Issues</TabsTrigger>
+                <TabsTrigger value="official" className="relative">
+                  <Shield className="h-4 w-4 mr-1" />
+                  Official
+                  {officialIssues.length > 0 && (
+                    <Badge variant="secondary" className="ml-2 h-5 px-1.5">
+                      {officialIssues.length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
                 <TabsTrigger value="reported" className="relative">
                   <Flag className="h-4 w-4 mr-1" />
                   Reported
@@ -351,6 +384,48 @@ export default function StudentFeed() {
                         transition={{ delay: index * 0.05 }}
                       >
                         <IssueCard issue={issue} />
+                      </motion.div>
+                    ))
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="official">
+                <Card className="glass-card mb-4">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Shield className="h-4 w-4 text-primary" />
+                      <span>Official announcements and issues posted by faculty members.</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="space-y-4">
+                  {officialIssues.length === 0 ? (
+                    <Card className="glass-card">
+                      <CardContent className="p-8 text-center">
+                        <Shield className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+                        <p className="text-muted-foreground">No official announcements</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    officialIssues.map((issue, index) => (
+                      <motion.div
+                        key={issue.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                      >
+                        <div className="relative">
+                          <Badge 
+                            variant="default" 
+                            className="absolute -top-2 -right-2 z-10 flex items-center gap-1"
+                          >
+                            <Shield className="h-3 w-3" />
+                            Official
+                          </Badge>
+                          <IssueCard issue={issue} />
+                        </div>
                       </motion.div>
                     ))
                   )}

@@ -270,7 +270,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
           id: `timeline-${Date.now()}`,
           status: 'pending',
           note: 'Issue created',
-          timestamp: serverTimestamp(),
+          timestamp: Timestamp.now(), // Use Timestamp.now() instead of serverTimestamp() in arrays
         },
       ],
       createdAt: serverTimestamp(),
@@ -287,19 +287,28 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
   const addComment = async (issueId: string, data: any) => {
     if (!currentUserId) throw new Error('Not authenticated');
 
-    await addDoc(collection(db, 'comments'), {
+    // Build comment document, only include mediaUrl/mediaType if they exist
+    const commentDoc: any = {
       issueId,
       authorId: data.authorId,
       authorNickname: data.authorNickname,
       authorRole: data.authorRole || 'student',
       text: data.content,
-      mediaUrl: data.mediaUrl,
-      mediaType: data.mediaType,
       isOfficial: data.isOfficial || (data.authorRole || 'student') === 'admin',
       isAdminResponse: data.isAdminResponse || false,
       reports: [],
       createdAt: serverTimestamp(),
-    });
+    };
+
+    // Only add media fields if they have values (Firebase rejects undefined)
+    if (data.mediaUrl) {
+      commentDoc.mediaUrl = data.mediaUrl;
+    }
+    if (data.mediaType) {
+      commentDoc.mediaType = data.mediaType;
+    }
+
+    await addDoc(collection(db, 'comments'), commentDoc);
 
     await updateDoc(doc(db, 'issues', issueId), {
       commentCount: increment(1),
@@ -356,22 +365,26 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     const issue = issues.find((i) => i.id === issueId);
     if (!issue) return;
 
+    // Convert existing timeline timestamps to Firestore Timestamps
+    // and add new event with current time (not serverTimestamp since it's in array)
+    const newTimeline = [
+      ...issue.timeline.map(t => ({
+        ...t,
+        timestamp: t.timestamp instanceof Date ? Timestamp.fromDate(t.timestamp) : t.timestamp,
+      })),
+      {
+        id: `timeline-${Date.now()}`,
+        status,
+        note,
+        adminId,
+        adminName,
+        timestamp: Timestamp.now(), // Use Timestamp.now() instead of serverTimestamp() in arrays
+      },
+    ];
+
     await updateDoc(doc(db, 'issues', issueId), {
       status,
-      timeline: [
-        ...issue.timeline.map(t => ({
-          ...t,
-          timestamp: t.timestamp instanceof Date ? Timestamp.fromDate(t.timestamp) : t.timestamp,
-        })),
-        {
-          id: `timeline-${Date.now()}`,
-          status,
-          note,
-          adminId,
-          adminName,
-          timestamp: serverTimestamp(),
-        },
-      ],
+      timeline: newTimeline,
       updatedAt: serverTimestamp(),
     });
 
@@ -394,23 +407,21 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       throw new Error('You have already reported this issue');
     }
 
-    const newReport: Report = {
-      id: `report-${Date.now()}`,
-      reporterId: userId,
-      reason,
-      customReason,
-      createdAt: new Date(),
-    };
-
     const newReportCount = (issue.reportCount || 0) + 1;
     const isReported = newReportCount >= 3;
     const isDeleted = newReportCount >= 10;
 
+    // Build report object - use Timestamp.now() instead of serverTimestamp() in arrays
+    const newReport = {
+      id: `report-${Date.now()}`,
+      reporterId: userId,
+      reason,
+      ...(customReason && { customReason }), // Only include if defined
+      createdAt: Timestamp.now(),
+    };
+
     await updateDoc(doc(db, 'issues', issueId), {
-      reports: arrayUnion({
-        ...newReport,
-        createdAt: serverTimestamp(),
-      }),
+      reports: arrayUnion(newReport),
       reportCount: increment(1),
       isReported,
       isDeleted,
@@ -419,12 +430,13 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
   };
 
   const reportComment = async (issueId: string, commentId: string, userId: string, reason: ReportReason, customReason?: string) => {
+    // Use Timestamp.now() instead of serverTimestamp() in arrays
     const newReport = {
       id: `report-${Date.now()}`,
       reporterId: userId,
       reason,
-      customReason,
-      createdAt: serverTimestamp(),
+      ...(customReason && { customReason }), // Only include if defined
+      createdAt: Timestamp.now(),
     };
 
     await updateDoc(doc(db, 'comments', commentId), {
@@ -539,6 +551,30 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
 
   const stats: Stats = useMemo(() => {
     const active = issues.filter((i) => !i.isDeleted);
+    
+    // Calculate top categories
+    const categoryCounts: Record<string, number> = {};
+    active.forEach(issue => {
+      categoryCounts[issue.category] = (categoryCounts[issue.category] || 0) + 1;
+    });
+    const topCategories = Object.entries(categoryCounts)
+      .map(([category, count]) => ({ category: category as any, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    // Calculate hotspot locations
+    const locationCounts: Record<string, number> = {};
+    active.forEach(issue => {
+      const loc = issue.location.trim();
+      if (loc) {
+        locationCounts[loc] = (locationCounts[loc] || 0) + 1;
+      }
+    });
+    const hotspotLocations = Object.entries(locationCounts)
+      .map(([location, count]) => ({ location, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
     return {
       totalIssues: active.length,
       pending: active.filter((i) => i.status === 'pending').length,
@@ -550,8 +586,8 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       reported: active.filter((i) => i.isReported).length,
       deleted: issues.filter((i) => i.isDeleted).length,
       avgResponseTime: 2.1,
-      topCategories: [],
-      hotspotLocations: [],
+      topCategories,
+      hotspotLocations,
     };
   }, [issues]);
 

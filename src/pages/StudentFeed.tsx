@@ -52,9 +52,9 @@ export default function StudentFeed() {
     return issues.filter(i => i.reports.some(r => r.reporterId === user.id));
   }, [issues, user]);
 
-  // All reported issues (flagged)
+  // All reported issues (any with reportCount > 0)
   const allReportedIssues = useMemo(() => {
-    return issues.filter(i => i.isReported && !i.isDeleted);
+    return issues.filter(i => (i.reportCount > 0 || i.isReported) && !i.isDeleted);
   }, [issues]);
 
   const filteredAndSortedIssues = useMemo(() => {

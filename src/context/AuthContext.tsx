@@ -154,20 +154,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const normalizedNickname = nickname.toLowerCase();
 
     try {
-      // Use a transaction to atomically check and reserve the username
-      const usernameRef = doc(db, 'usernames', normalizedNickname);
-      
-      // First check if username is taken (outside transaction for quick feedback)
-      const existingUsername = await getDoc(usernameRef);
-      if (existingUsername.exists()) {
-        return { success: false, error: 'This username is already taken. Please choose another.' };
-      }
-
-      // Sign in anonymously to get a Firebase uid
+      // IMPORTANT: Sign in anonymously FIRST to get Firebase authentication
       const userCredential = await signInAnonymously(auth);
       const fbUser = userCredential.user;
 
-      // Use transaction to reserve username and create user atomically
+      // NOW use transaction to atomically check and reserve the username
+      const usernameRef = doc(db, 'usernames', normalizedNickname);
+      
       try {
         await runTransaction(db, async (transaction) => {
           const usernameDoc = await transaction.get(usernameRef);
@@ -199,12 +192,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         return { success: true };
       } catch (transactionError: any) {
-        // If transaction fails, sign out and clean up
+        // If transaction fails (username taken), sign out and return error
         await signOut(auth);
         if (transactionError.message === 'Username taken') {
           return { success: false, error: 'This username is already taken. Please choose another.' };
         }
-        throw transactionError;
+        console.error('Transaction error:', transactionError);
+        return { success: false, error: 'Failed to create account. Please try again.' };
       }
     } catch (error: any) {
       console.error('Student login error:', error);

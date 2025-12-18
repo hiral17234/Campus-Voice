@@ -93,9 +93,15 @@ export default function IssueDetail() {
     }
   };
 
-  const handleReportIssue = (reason: ReportReason, customReason?: string) => {
+  const handleReportIssue = async (reason: ReportReason, customReason?: string) => {
     if (user) {
-      reportIssue(issue.id, user.id, reason, customReason);
+      try {
+        await reportIssue(issue.id, user.id, reason, customReason);
+        toast.success('Issue reported successfully');
+      } catch (error: any) {
+        console.error('Report error:', error);
+        toast.error(error.message || 'Failed to report issue');
+      }
     }
   };
 

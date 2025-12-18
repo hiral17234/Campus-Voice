@@ -555,7 +555,8 @@ export default function AdminDashboard() {
             setSelectedIssue(null);
           }}
           currentStatus={selectedIssue.status}
-          onStatusChange={handleStatusChange}
+          issueTitle={selectedIssue.title}
+          onConfirm={handleStatusChange}
         />
       )}
     </div>

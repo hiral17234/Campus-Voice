@@ -249,11 +249,11 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       issueId,
       authorId: data.authorId,
       authorNickname: data.authorNickname,
-      authorRole: data.authorRole,
+      authorRole: data.authorRole || 'student',
       text: data.content,
       mediaUrl: data.mediaUrl,
       mediaType: data.mediaType,
-      isOfficial: data.authorRole === 'admin',
+     isOfficial: (data.authorRole || 'student') === 'admin',
       createdAt: serverTimestamp(),
     });
 

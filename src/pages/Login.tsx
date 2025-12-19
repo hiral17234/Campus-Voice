@@ -28,6 +28,7 @@ export default function Login() {
   // Redirect if already authenticated - use actual user role, not local state
   useEffect(() => {
     if (isAuthenticated && user) {
+      setIsLoading(false); // Reset loading state before navigation
       navigate(user.role === 'student' ? '/feed' : '/admin');
     }
   }, [isAuthenticated, user, navigate]);

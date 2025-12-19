@@ -85,7 +85,9 @@ export default function Login() {
 
       if (result.success) {
         toast.success(role === 'student' ? 'Welcome to CampusVoice!' : 'Admin access granted');
-        // Don't navigate here - let the useEffect handle it when isAuthenticated updates
+        // Navigate directly - don't wait for auth state to propagate
+        setIsLoading(false);
+        navigate(role === 'student' ? '/feed' : '/admin');
       } else {
         toast.error(result.error || 'Login failed');
         setIsLoading(false);
@@ -95,7 +97,6 @@ export default function Login() {
       toast.error(error.message || 'Login failed. Please try again.');
       setIsLoading(false);
     }
-    // Don't set isLoading to false on success - keep loading until redirect happens
   };
 
   return (

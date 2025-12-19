@@ -45,7 +45,7 @@ import { DepartmentSelect } from '@/components/DepartmentSelect';
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
-  const { issues, stats, updateStatus, addComment, setIssuePriority, assignDepartment, notifications, restoreIssue } = useIssues();
+  const { issues, stats, updateStatus, addComment, setIssuePriority, assignDepartment, notifications, restoreIssue, markAsFalselyAccused } = useIssues();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -59,8 +59,9 @@ export default function AdminDashboard() {
   const unreadNotifications = notifications.filter(n => n.userId === user?.id && !n.isRead).length;
 
   // Show issues with any reports (reportCount > 0) not just isReported (which requires 3+)
-  const reportedIssues = useMemo(() => issues.filter(i => (i.reportCount > 0 || i.isReported) && !i.isDeleted), [issues]);
-  const deletedIssues = useMemo(() => issues.filter(i => i.isDeleted), [issues]);
+  const reportedIssues = useMemo(() => issues.filter(i => (i.reportCount > 0 || i.isReported) && !i.isDeleted && !i.isFalselyAccused), [issues]);
+  const deletedIssues = useMemo(() => issues.filter(i => i.isDeleted && !i.isFalselyAccused), [issues]);
+  const falselyAccusedIssues = useMemo(() => issues.filter(i => i.isFalselyAccused), [issues]);
 
   const filteredIssues = useMemo(() => {
     let filtered: Issue[] = [];
@@ -69,8 +70,10 @@ export default function AdminDashboard() {
       filtered = reportedIssues;
     } else if (activeTab === 'deleted') {
       filtered = deletedIssues;
+    } else if (activeTab === 'falsely_accused') {
+      filtered = falselyAccusedIssues;
     } else {
-      filtered = issues.filter(i => !i.isReported && !i.isDeleted);
+      filtered = issues.filter(i => !i.isReported && !i.isDeleted && !i.isFalselyAccused);
     }
 
     // Search filter
@@ -111,7 +114,7 @@ export default function AdminDashboard() {
     }
 
     return filtered;
-  }, [issues, reportedIssues, deletedIssues, activeTab, searchQuery, statusFilter, categoryFilter, priorityFilter, sortBy]);
+  }, [issues, reportedIssues, deletedIssues, falselyAccusedIssues, activeTab, searchQuery, statusFilter, categoryFilter, priorityFilter, sortBy]);
 
   const handleLogout = async () => {
     await logout();
@@ -150,6 +153,15 @@ export default function AdminDashboard() {
       toast.success('Issue restored successfully');
     } catch (error) {
       toast.error('Failed to restore issue');
+    }
+  };
+
+  const handleMarkFalselyAccused = async (issueId: string) => {
+    try {
+      await markAsFalselyAccused(issueId);
+      toast.success('Issue marked as falsely accused and restored');
+    } catch (error) {
+      toast.error('Failed to mark issue as falsely accused');
     }
   };
 
@@ -295,6 +307,15 @@ export default function AdminDashboard() {
                 </Badge>
               )}
             </TabsTrigger>
+            <TabsTrigger value="falsely_accused" className="relative">
+              <Shield className="h-4 w-4 mr-1 text-green-500" />
+              Falsely Accused
+              {falselyAccusedIssues.length > 0 && (
+                <Badge className="ml-2 h-5 px-1.5 bg-green-500/20 text-green-600 dark:text-green-400">
+                  {falselyAccusedIssues.length}
+                </Badge>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value={activeTab}>
@@ -305,7 +326,7 @@ export default function AdminDashboard() {
                   <CardHeader>
                     <div className="flex flex-col gap-4">
                       <CardTitle>
-                        {activeTab === 'reported' ? 'Reported Issues' : activeTab === 'deleted' ? 'Deleted Issues' : 'All Issues'}
+                        {activeTab === 'reported' ? 'Reported Issues' : activeTab === 'deleted' ? 'Deleted Issues' : activeTab === 'falsely_accused' ? 'Falsely Accused Issues' : 'All Issues'}
                       </CardTitle>
                       <div className="flex flex-wrap gap-2">
                         <div className="relative flex-1 min-w-[200px]">
@@ -387,15 +408,21 @@ export default function AdminDashboard() {
                             </TableRow>
                           ) : (
                             filteredIssues.map((issue) => (
-                              <TableRow key={issue.id} className={issue.isReported ? 'bg-red-500/5' : issue.isOfficial ? 'bg-primary/5' : ''}>
+                              <TableRow key={issue.id} className={issue.isFalselyAccused ? 'bg-green-500/10 border-l-4 border-green-500' : issue.isReported ? 'bg-red-500/5' : issue.isOfficial ? 'bg-primary/5' : ''}>
                                 <TableCell>
                                   <div className="max-w-[180px]">
                                     <div className="flex items-center gap-2">
-                                      {issue.isReported && <Flag className="h-3 w-3 text-red-500 flex-shrink-0" />}
+                                      {issue.isFalselyAccused && <Shield className="h-3 w-3 text-green-500 flex-shrink-0" />}
+                                      {issue.isReported && !issue.isFalselyAccused && <Flag className="h-3 w-3 text-red-500 flex-shrink-0" />}
                                       {issue.isOfficial && <Shield className="h-3 w-3 text-primary flex-shrink-0" />}
                                       <p className="font-medium truncate">{issue.title}</p>
                                     </div>
-                                    {issue.isOfficial && (
+                                    {issue.isFalselyAccused && (
+                                      <Badge className="text-xs mt-1 bg-green-500/20 text-green-600 dark:text-green-400">
+                                        Verified True
+                                      </Badge>
+                                    )}
+                                    {issue.isOfficial && !issue.isFalselyAccused && (
                                       <Badge variant="default" className="text-xs mt-1">
                                         Official
                                       </Badge>
@@ -457,13 +484,36 @@ export default function AdminDashboard() {
                                       <Eye className="h-4 w-4" />
                                     </Button>
                                     {activeTab === 'deleted' ? (
+                                      <>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleRestoreIssue(issue.id)}
+                                          className="text-muted-foreground hover:text-foreground"
+                                          title="Restore (rightly reported - keep in deleted later)"
+                                        >
+                                          <RotateCcw className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleMarkFalselyAccused(issue.id)}
+                                          className="text-green-500 hover:text-green-600"
+                                          title="Mark as Falsely Accused (restore with verification)"
+                                        >
+                                          <CheckCircle className="h-4 w-4" />
+                                        </Button>
+                                      </>
+                                    ) : activeTab === 'falsely_accused' ? (
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => handleRestoreIssue(issue.id)}
-                                        className="text-green-500 hover:text-green-600"
+                                        onClick={() => {
+                                          setSelectedIssue(issue);
+                                          setShowStatusModal(true);
+                                        }}
                                       >
-                                        <RotateCcw className="h-4 w-4" />
+                                        <RefreshCw className="h-4 w-4" />
                                       </Button>
                                     ) : (
                                       <Button

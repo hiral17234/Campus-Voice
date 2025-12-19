@@ -83,6 +83,7 @@ interface IssuesContextType {
   setIssuePriority: (issueId: string, priority: IssuePriority) => Promise<void>;
   assignDepartment: (issueId: string, department: Department, customDepartment?: string) => Promise<void>;
   restoreIssue: (issueId: string) => Promise<void>;
+  markAsFalselyAccused: (issueId: string) => Promise<void>;
   getUserActivity: (userId: string) => UserActivity;
 }
 
@@ -164,6 +165,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
             reportCount: data.reportCount || 0,
             isReported: data.isReported || false,
             isDeleted: data.isDeleted || false,
+            isFalselyAccused: data.isFalselyAccused || false,
             createdAt: toDate(data.createdAt),
             updatedAt: toDate(data.updatedAt),
           };
@@ -409,7 +411,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
 
     const newReportCount = (issue.reportCount || 0) + 1;
     const isReported = newReportCount >= 3;
-    const isDeleted = newReportCount >= 10;
+    const isDeleted = newReportCount >= 35; // Changed from 10 to 35
 
     // Build report object - use Timestamp.now() instead of serverTimestamp() in arrays
     const newReport = {
@@ -427,6 +429,27 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       isDeleted,
       updatedAt: serverTimestamp(),
     });
+
+    // Check if user is a spam reporter (reported more than 50% of issues)
+    const userReportCount = issues.filter(i => i.reports.some(r => r.reporterId === userId)).length + 1;
+    const totalIssues = issues.length;
+    
+    // If user has reported more than 20 issues and that's more than 50% of all issues, delete their account
+    if (userReportCount >= 20 && totalIssues > 0 && (userReportCount / totalIssues) > 0.5) {
+      try {
+        await updateDoc(doc(db, 'users', userId), {
+          isDisabled: true,
+          disabledReason: 'Spam reporting detected',
+          disabledAt: serverTimestamp(),
+        });
+        // Sign out the user if they're the current user
+        if (currentUserId === userId) {
+          await auth.signOut();
+        }
+      } catch (error) {
+        console.error('Failed to disable spam reporter:', error);
+      }
+    }
   };
 
   const reportComment = async (issueId: string, commentId: string, userId: string, reason: ReportReason, customReason?: string) => {
@@ -484,6 +507,21 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     await updateDoc(doc(db, 'issues', issueId), {
       isDeleted: false,
       isReported: false,
+      reports: [],
+      reportCount: 0,
+      status: 'pending',
+      updatedAt: serverTimestamp(),
+    });
+  };
+
+  const markAsFalselyAccused = async (issueId: string) => {
+    const issue = issues.find((i) => i.id === issueId);
+    if (!issue) throw new Error('Issue not found');
+
+    await updateDoc(doc(db, 'issues', issueId), {
+      isDeleted: false,
+      isReported: false,
+      isFalselyAccused: true,
       reports: [],
       reportCount: 0,
       status: 'pending',
@@ -612,6 +650,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
         setIssuePriority,
         assignDepartment,
         restoreIssue,
+        markAsFalselyAccused,
         getUserActivity,
       }}
     >

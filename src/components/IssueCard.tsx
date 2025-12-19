@@ -38,6 +38,9 @@ export function IssueCard({ issue }: IssueCardProps) {
   const hasMedia = issue.mediaUrls && issue.mediaUrls.length > 0;
   const actualCommentCount = comments[issue.id]?.length || issue.commentCount || 0;
 
+  // Disable voting for deleted issues
+  const canInteract = !issue.isDeleted;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -46,21 +49,21 @@ export function IssueCard({ issue }: IssueCardProps) {
       transition={{ duration: 0.2 }}
     >
       <Card 
-        className={`overflow-hidden hover:shadow-lg transition-shadow cursor-pointer glass-card ${issue.isOfficial ? 'border-primary/50' : ''}`}
+        className={`overflow-hidden hover:shadow-lg transition-shadow cursor-pointer glass-card ${issue.isOfficial ? 'border-primary/50' : ''} ${issue.isFalselyAccused ? 'border-green-500/50 bg-green-500/5' : ''} ${issue.isDeleted ? 'opacity-60' : ''}`}
         onClick={() => navigate(`/issue/${issue.id}`)}
       >
         <CardContent className="p-0">
           <div className="flex">
             {/* Vote Column */}
             <div 
-              className="flex flex-col items-center justify-start p-3 bg-muted/50 border-r border-border"
+              className={`flex flex-col items-center justify-start p-3 bg-muted/50 border-r border-border ${!canInteract ? 'pointer-events-none opacity-50' : ''}`}
               onClick={(e) => e.stopPropagation()}
             >
               <VoteButtons
                 upvotes={issue.upvotes}
                 downvotes={issue.downvotes}
                 userVote={userVote}
-                onVote={handleVote}
+                onVote={canInteract ? handleVote : () => {}}
               />
               {/* Vote Info Tooltip */}
               <Tooltip>
@@ -109,7 +112,20 @@ export function IssueCard({ issue }: IssueCardProps) {
                       <TooltipContent>
                         <p className="text-xs">{issue.reportCount} report{issue.reportCount !== 1 ? 's' : ''}</p>
                         {issue.reportCount >= 3 && <p className="text-xs text-red-500">Flagged for review</p>}
-                        {issue.reportCount >= 10 && <p className="text-xs text-red-500">Auto-deleted at 10 reports</p>}
+                        {issue.reportCount >= 35 && <p className="text-xs text-red-500">Auto-deleted at 35 reports</p>}
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {issue.isFalselyAccused && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="flex items-center gap-1 text-xs font-medium text-green-500">
+                          <Shield className="h-3 w-3" />
+                          Verified
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs text-green-500">This issue was falsely reported and verified as true by faculty</p>
                       </TooltipContent>
                     </Tooltip>
                   )}

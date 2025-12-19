@@ -109,7 +109,8 @@ export interface Issue {
   reports: Report[];
   reportCount: number;
   isReported: boolean; // true when reportCount >= 3
-  isDeleted?: boolean; // true when reportCount >= 10
+  isDeleted?: boolean; // true when reportCount >= 35
+  isFalselyAccused?: boolean; // true when faculty marks as falsely reported
   resolution?: IssueResolution;
   createdAt: Date;
   updatedAt: Date;

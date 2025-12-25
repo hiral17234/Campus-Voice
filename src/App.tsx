@@ -51,17 +51,17 @@ const { user, firebaseUser, isLoading, isAuthReady } = useAuth();
   }, [firebaseUser, user, isAuthReady]);
 
 if (!isAuthReady || isLoading || checkingStatus) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-      </div>
-    );
-  }
-
- if (!firebaseUser || !user) {
-  return <Navigate to="/" replace />;
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+    </div>
+  );
 }
 
+// 2️⃣ Then auth check
+if (!firebaseUser || !user) {
+  return <Navigate to="/" replace />;
+}
 
   // Redirect disabled users to suspended page
   if (isDisabled) {

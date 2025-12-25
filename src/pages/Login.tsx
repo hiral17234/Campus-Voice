@@ -85,16 +85,17 @@ export default function Login() {
 
       if (result.success) {
         toast.success(role === 'student' ? 'Welcome to CampusVoice!' : 'Admin access granted');
-        // Navigate directly - don't wait for auth state to propagate
-        setIsLoading(false);
-        navigate(role === 'student' ? '/feed' : '/admin');
+        // Navigate immediately after successful login
+        const targetPath = role === 'student' ? '/feed' : '/admin';
+        // Use replace to prevent back button going to login
+        navigate(targetPath, { replace: true });
       } else {
         toast.error(result.error || 'Login failed');
-        setIsLoading(false);
       }
     } catch (error: any) {
       console.error('Login error:', error);
       toast.error(error.message || 'Login failed. Please try again.');
+    } finally {
       setIsLoading(false);
     }
   };

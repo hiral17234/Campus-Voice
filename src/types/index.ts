@@ -40,7 +40,22 @@ export interface User {
   role: UserRole;
   nickname?: string;
   isDisabled?: boolean;
+  disabledReason?: string;
+  disabledAt?: Date;
   createdAt: Date;
+}
+
+export interface AccountAppeal {
+  id: string;
+  userId: string;
+  userNickname: string;
+  userEmail?: string;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewedBy?: string;
+  reviewNote?: string;
+  createdAt: Date;
+  reviewedAt?: Date;
 }
 
 export interface TimelineEvent {

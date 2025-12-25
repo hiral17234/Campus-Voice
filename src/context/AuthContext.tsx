@@ -65,21 +65,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Fetch user data from Firestore
         try {
           const userDoc = await getDoc(doc(db, 'users', fbUser.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            const appUser: User = {
-              id: fbUser.uid,
-              email: userData.email || undefined,
-              role: userData.role === 'faculty' ? 'admin' : 'student',
-              nickname: userData.username || userData.name,
-              createdAt: userData.createdAt?.toDate() || new Date(),
-            };
-            setUser(appUser);
-          } else {
-            // User document doesn't exist - this shouldn't happen normally
-            console.warn('User authenticated but no Firestore document found');
-            setUser(null);
-          }
+         if (userDoc.exists()) {
+  const userData = userDoc.data();
+  const appUser: User = {
+    id: fbUser.uid,
+    email: userData.email || undefined,
+    role: userData.role === 'faculty' ? 'admin' : 'student',
+    nickname: userData.username || userData.name,
+    createdAt: userData.createdAt?.toDate() || new Date(),
+  };
+  setUser(appUser);
+} else {
+  // 🔥 DO NOTHING HERE
+  // Anonymous login creates the Firestore user asynchronously.
+  // onAuthStateChanged WILL fire again once the document exists.
+  return;
+}
+
         } catch (error) {
           console.error('Error fetching user data:', error);
           setUser(null);
@@ -88,8 +90,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
       }
       
-      setIsLoading(false);
       setIsAuthReady(true);
+setIsLoading(false);
+
     });
 
     return () => unsubscribe();

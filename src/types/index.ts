@@ -54,6 +54,7 @@ export interface AccountAppeal {
   status: 'pending' | 'approved' | 'rejected';
   reviewedBy?: string;
   reviewNote?: string;
+  rejectionReason?: string;
   createdAt: Date;
   reviewedAt?: Date;
 }

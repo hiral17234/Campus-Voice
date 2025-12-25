@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
@@ -15,9 +15,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { CATEGORY_LABELS, STATUS_LABELS, PRIORITY_LABELS, DEPARTMENT_LABELS, IssueStatus, Issue, IssuePriority, Department } from '@/types';
+import { Textarea } from '@/components/ui/textarea';
+import { CATEGORY_LABELS, STATUS_LABELS, PRIORITY_LABELS, DEPARTMENT_LABELS, IssueStatus, Issue, IssuePriority, Department, AccountAppeal } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
+import { collection, query, getDocs, doc, updateDoc, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import {
   LogOut,
   Search,
@@ -38,7 +41,10 @@ import {
   Plus,
   Trash2,
   RotateCcw,
-  Shield
+  Shield,
+  Gavel,
+  UserX,
+  UserCheck
 } from 'lucide-react';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 import { DepartmentSelect } from '@/components/DepartmentSelect';
@@ -55,6 +61,11 @@ export default function AdminDashboard() {
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+  
+  // Appeals state
+  const [appeals, setAppeals] = useState<AccountAppeal[]>([]);
+  const [isLoadingAppeals, setIsLoadingAppeals] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   const unreadNotifications = notifications.filter(n => n.userId === user?.id && !n.isRead).length;
 
@@ -62,6 +73,101 @@ export default function AdminDashboard() {
   const reportedIssues = useMemo(() => issues.filter(i => (i.reportCount > 0 || i.isReported) && !i.isDeleted && !i.isFalselyAccused), [issues]);
   const deletedIssues = useMemo(() => issues.filter(i => i.isDeleted && !i.isFalselyAccused), [issues]);
   const falselyAccusedIssues = useMemo(() => issues.filter(i => i.isFalselyAccused), [issues]);
+
+  // Fetch appeals when appeals tab is active
+  useEffect(() => {
+    if (activeTab === 'appeals') {
+      fetchAppeals();
+    }
+  }, [activeTab]);
+
+  const fetchAppeals = async () => {
+    setIsLoadingAppeals(true);
+    try {
+      const appealsQuery = query(collection(db, 'account_appeals'), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(appealsQuery);
+      const appealsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate() || new Date(),
+        reviewedAt: doc.data().reviewedAt?.toDate() || undefined,
+      })) as AccountAppeal[];
+      setAppeals(appealsData);
+    } catch (error) {
+      console.error('Error fetching appeals:', error);
+      toast.error('Failed to load appeals');
+    } finally {
+      setIsLoadingAppeals(false);
+    }
+  };
+
+  const handleApproveAppeal = async (appeal: AccountAppeal) => {
+    try {
+      // Update appeal status
+      await updateDoc(doc(db, 'account_appeals', appeal.id), {
+        status: 'approved',
+        reviewedAt: serverTimestamp(),
+        reviewedBy: user?.id,
+      });
+
+      // Re-enable user account
+      await updateDoc(doc(db, 'users', appeal.userId), {
+        isDisabled: false,
+        disabledReason: null,
+        disabledAt: null,
+      });
+
+      // Create notification for user
+      await addDoc(collection(db, 'notifications'), {
+        userId: appeal.userId,
+        type: 'system',
+        title: 'Account Reinstated',
+        message: 'Your appeal has been approved. Your account has been reinstated. Please follow community guidelines.',
+        isRead: false,
+        createdAt: serverTimestamp(),
+      });
+
+      toast.success('Appeal approved - user account reinstated');
+      fetchAppeals();
+    } catch (error) {
+      console.error('Error approving appeal:', error);
+      toast.error('Failed to approve appeal');
+    }
+  };
+
+  const handleRejectAppeal = async (appeal: AccountAppeal, reason: string) => {
+    if (!reason.trim()) {
+      toast.error('Please provide a rejection reason');
+      return;
+    }
+
+    try {
+      // Update appeal status
+      await updateDoc(doc(db, 'account_appeals', appeal.id), {
+        status: 'rejected',
+        reviewedAt: serverTimestamp(),
+        reviewedBy: user?.id,
+        rejectionReason: reason.trim(),
+      });
+
+      // Create notification for user
+      await addDoc(collection(db, 'notifications'), {
+        userId: appeal.userId,
+        type: 'system',
+        title: 'Appeal Rejected',
+        message: `Your appeal has been rejected. Reason: ${reason.trim()}`,
+        isRead: false,
+        createdAt: serverTimestamp(),
+      });
+
+      toast.success('Appeal rejected');
+      setRejectionReason('');
+      fetchAppeals();
+    } catch (error) {
+      console.error('Error rejecting appeal:', error);
+      toast.error('Failed to reject appeal');
+    }
+  };
 
   const filteredIssues = useMemo(() => {
     let filtered: Issue[] = [];
@@ -316,6 +422,15 @@ export default function AdminDashboard() {
                 </Badge>
               )}
             </TabsTrigger>
+            <TabsTrigger value="appeals" className="relative">
+              <Gavel className="h-4 w-4 mr-1" />
+              Appeals
+              {appeals.filter(a => a.status === 'pending').length > 0 && (
+                <Badge variant="outline" className="ml-2 h-5 px-1.5">
+                  {appeals.filter(a => a.status === 'pending').length}
+                </Badge>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value={activeTab}>
@@ -326,7 +441,7 @@ export default function AdminDashboard() {
                   <CardHeader>
                     <div className="flex flex-col gap-4">
                       <CardTitle>
-                        {activeTab === 'reported' ? 'Reported Issues' : activeTab === 'deleted' ? 'Deleted Issues' : activeTab === 'falsely_accused' ? 'Falsely Accused Issues' : 'All Issues'}
+                        {activeTab === 'reported' ? 'Reported Issues' : activeTab === 'deleted' ? 'Deleted Issues' : activeTab === 'falsely_accused' ? 'Falsely Accused Issues' : activeTab === 'appeals' ? 'Account Appeals' : 'All Issues'}
                       </CardTitle>
                       <div className="flex flex-wrap gap-2">
                         <div className="relative flex-1 min-w-[200px]">
@@ -598,6 +713,105 @@ export default function AdminDashboard() {
                 </Card>
               </div>
             </div>
+          </TabsContent>
+
+          {/* Appeals Tab Content */}
+          <TabsContent value="appeals">
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Gavel className="h-5 w-5" />
+                  Account Appeals
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoadingAppeals ? (
+                  <div className="flex items-center justify-center py-8">
+                    <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : appeals.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <UserCheck className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No account appeals to review</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {appeals.map((appeal) => (
+                      <Card key={appeal.id} className={`border ${appeal.status === 'pending' ? 'border-orange-500/50 bg-orange-500/5' : appeal.status === 'approved' ? 'border-green-500/50 bg-green-500/5' : 'border-red-500/50 bg-red-500/5'}`}>
+                        <CardContent className="p-4">
+                          <div className="flex flex-col gap-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${appeal.status === 'pending' ? 'bg-orange-500/20' : appeal.status === 'approved' ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+                                  <UserX className={`h-5 w-5 ${appeal.status === 'pending' ? 'text-orange-500' : appeal.status === 'approved' ? 'text-green-500' : 'text-red-500'}`} />
+                                </div>
+                                <div>
+                                  <p className="font-medium">{appeal.userNickname}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {appeal.userEmail || 'No email provided'}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Submitted {formatDistanceToNow(appeal.createdAt, { addSuffix: true })}
+                                  </p>
+                                </div>
+                              </div>
+                              <Badge variant={appeal.status === 'pending' ? 'outline' : appeal.status === 'approved' ? 'default' : 'destructive'}>
+                                {appeal.status.charAt(0).toUpperCase() + appeal.status.slice(1)}
+                              </Badge>
+                            </div>
+
+                            <div className="bg-muted/50 rounded-lg p-3">
+                              <p className="text-sm font-medium mb-1">Appeal Reason:</p>
+                              <p className="text-sm text-muted-foreground">{appeal.reason}</p>
+                            </div>
+
+                            {appeal.status === 'pending' && (
+                              <div className="flex flex-col gap-3">
+                                <div className="space-y-2">
+                                  <Textarea
+                                    placeholder="Rejection reason (required for rejection)..."
+                                    value={rejectionReason}
+                                    onChange={(e) => setRejectionReason(e.target.value)}
+                                    rows={2}
+                                  />
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    className="flex-1"
+                                    onClick={() => handleApproveAppeal(appeal)}
+                                  >
+                                    <UserCheck className="h-4 w-4 mr-2" />
+                                    Approve & Reinstate
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className="flex-1"
+                                    onClick={() => handleRejectAppeal(appeal, rejectionReason)}
+                                  >
+                                    <XCircle className="h-4 w-4 mr-2" />
+                                    Reject
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+
+                            {appeal.status === 'rejected' && appeal.rejectionReason && (
+                              <div className="bg-red-500/10 rounded-lg p-3">
+                                <p className="text-sm font-medium text-red-600 dark:text-red-400 mb-1">Rejection Reason:</p>
+                                <p className="text-sm text-muted-foreground">{appeal.rejectionReason}</p>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>

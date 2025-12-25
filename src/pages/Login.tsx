@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
@@ -24,12 +24,13 @@ export default function Login() {
   const [nicknameAvailable, setNicknameAvailable] = useState<boolean | null>(null);
   const { login, checkNicknameAvailable, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+  const hasNavigated = useRef(false);
 
-  // Redirect if already authenticated - use actual user role, not local state
+  // Redirect if already authenticated - only if not already navigating from handleSubmit
   useEffect(() => {
-    if (isAuthenticated && user) {
-      setIsLoading(false); // Reset loading state before navigation
-      navigate(user.role === 'student' ? '/feed' : '/admin');
+    if (isAuthenticated && user && !hasNavigated.current) {
+      hasNavigated.current = true;
+      navigate(user.role === 'student' ? '/feed' : '/admin', { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
 
@@ -84,6 +85,7 @@ export default function Login() {
       const result = await login(role, campusCode, adminEmail, adminPassword, role === 'student' ? nickname : undefined);
 
       if (result.success) {
+        hasNavigated.current = true;
         toast.success(role === 'student' ? 'Welcome to CampusVoice!' : 'Admin access granted');
         // Navigate immediately after successful login
         const targetPath = role === 'student' ? '/feed' : '/admin';

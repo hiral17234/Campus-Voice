@@ -193,6 +193,15 @@ setIsLoading(false);
           });
         });
 
+        // ✅ MANUALLY SET USER FOR ANONYMOUS STUDENT
+setUser({
+  id: fbUser.uid,
+  role: 'student',
+  nickname: nickname,
+  createdAt: new Date(),
+});
+
+
         return { success: true };
       } catch (transactionError: any) {
         // If transaction fails (username taken), sign out and return error

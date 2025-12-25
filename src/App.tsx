@@ -73,17 +73,24 @@ if (!isAuthReady || isLoading || checkingStatus) {
 }
 
 function AppRoutes() {
-  const { isAuthenticated, user } = useAuth();
+  const { user, firebaseUser, isAuthReady, isLoading } = useAuth();
 
   return (
     <Routes>
       <Route 
         path="/" 
         element={
-          isAuthenticated 
-            ? <Navigate to={user?.role === 'admin' ? '/admin' : '/feed'} replace />
-            : <Login />
-        } 
+  !isAuthReady || isLoading ? (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+    </div>
+  ) : firebaseUser && user ? (
+    <Navigate to={user.role === 'admin' ? '/admin' : '/feed'} replace />
+  ) : (
+    <Login />
+  )
+}
+
       />
       <Route 
         path="/feed" 

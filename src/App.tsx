@@ -23,7 +23,7 @@ import { db } from "./lib/firebase";
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'student' | 'admin' }) {
-  const { user, firebaseUser, isLoading, isAuthenticated } = useAuth();
+const { user, firebaseUser, isLoading, isAuthReady } = useAuth();
   const [isDisabled, setIsDisabled] = useState<boolean | null>(null);
   const [checkingStatus, setCheckingStatus] = useState(true);
 
@@ -47,7 +47,7 @@ function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode;
     }
   }, [firebaseUser, isLoading]);
 
-  if (isLoading || checkingStatus) {
+if (!isAuthReady || isLoading || checkingStatus) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
@@ -55,9 +55,10 @@ function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode;
     );
   }
 
-  if (!isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
+ if (!firebaseUser || !user) {
+  return <Navigate to="/" replace />;
+}
+
 
   // Redirect disabled users to suspended page
   if (isDisabled) {

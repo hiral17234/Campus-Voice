@@ -22,7 +22,14 @@ export default function Login() {
   const [nickname, setNickname] = useState('');
   const [isCheckingNickname, setIsCheckingNickname] = useState(false);
   const [nicknameAvailable, setNicknameAvailable] = useState<boolean | null>(null);
-  const { login, checkNicknameAvailable, isAuthenticated, user } = useAuth();
+  const {
+  login,
+  checkNicknameAvailable,
+  isAuthenticated,
+  user,
+  isAuthReady
+} = useAuth();
+
   const navigate = useNavigate();
   const hasNavigated = useRef(false);
 

@@ -79,7 +79,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 🔥 DO NOTHING HERE
   // Anonymous login creates the Firestore user asynchronously.
   // onAuthStateChanged WILL fire again once the document exists.
-  return;
 }
 
         } catch (error) {

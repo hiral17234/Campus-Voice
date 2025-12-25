@@ -259,7 +259,7 @@ export default function StudentFeed() {
                   <Button 
                     variant="outline" 
                     className="w-full justify-start" 
-                    onClick={() => window.open('https://golden-note-hub.lovable.app', '_blank')}
+                    onClick={() => window.open('https://notehall.vercel.app/', '_blank')}
                   >
                     <BookOpen className="h-4 w-4 mr-2 text-blue-500" />
                     NoteHall

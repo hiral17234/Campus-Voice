@@ -42,10 +42,13 @@ const { user, firebaseUser, isLoading, isAuthReady } = useAuth();
       setCheckingStatus(false);
     };
 
-    if (!isLoading) {
-      checkDisabledStatus();
-    }
-  }, [firebaseUser, isLoading]);
+    if (isAuthReady && firebaseUser && user) {
+  checkDisabledStatus();
+} else {
+  setCheckingStatus(false);
+}
+
+  }, [firebaseUser, user, isAuthReady]);
 
 if (!isAuthReady || isLoading || checkingStatus) {
     return (

@@ -65,7 +65,7 @@ export default function AdminDashboard() {
   // Appeals state
   const [appeals, setAppeals] = useState<AccountAppeal[]>([]);
   const [isLoadingAppeals, setIsLoadingAppeals] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
 
   const unreadNotifications = notifications.filter(n => n.userId === user?.id && !n.isRead).length;
 
@@ -161,7 +161,11 @@ export default function AdminDashboard() {
       });
 
       toast.success('Appeal rejected');
-      setRejectionReason('');
+      setRejectionReasons(prev => {
+        const updated = { ...prev };
+        delete updated[appeal.id];
+        return updated;
+      });
       fetchAppeals();
     } catch (error) {
       console.error('Error rejecting appeal:', error);
@@ -770,8 +774,8 @@ export default function AdminDashboard() {
                                 <div className="space-y-2">
                                   <Textarea
                                     placeholder="Rejection reason (required for rejection)..."
-                                    value={rejectionReason}
-                                    onChange={(e) => setRejectionReason(e.target.value)}
+                                    value={rejectionReasons[appeal.id] || ''}
+                                    onChange={(e) => setRejectionReasons(prev => ({ ...prev, [appeal.id]: e.target.value }))}
                                     rows={2}
                                   />
                                 </div>
@@ -789,7 +793,7 @@ export default function AdminDashboard() {
                                     variant="destructive"
                                     size="sm"
                                     className="flex-1"
-                                    onClick={() => handleRejectAppeal(appeal, rejectionReason)}
+                                    onClick={() => handleRejectAppeal(appeal, rejectionReasons[appeal.id] || '')}
                                   >
                                     <XCircle className="h-4 w-4 mr-2" />
                                     Reject

@@ -28,11 +28,13 @@ export default function Login() {
 
   // Redirect if already authenticated - only if not already navigating from handleSubmit
   useEffect(() => {
-    if (isAuthenticated && user && !hasNavigated.current) {
-      hasNavigated.current = true;
-      navigate(user.role === 'student' ? '/feed' : '/admin', { replace: true });
-    }
-  }, [isAuthenticated, user, navigate]);
+  if (!isAuthReady) return;
+
+  if (isAuthenticated && user && !hasNavigated.current) {
+    hasNavigated.current = true;
+    navigate(user.role === 'student' ? '/feed' : '/admin', { replace: true });
+  }
+}, [isAuthReady, isAuthenticated, user, navigate]);
 
   // Generate initial nickname
   useEffect(() => {
@@ -84,14 +86,12 @@ export default function Login() {
     try {
       const result = await login(role, campusCode, adminEmail, adminPassword, role === 'student' ? nickname : undefined);
 
-      if (result.success) {
-        hasNavigated.current = true;
-        toast.success(role === 'student' ? 'Welcome to CampusVoice!' : 'Admin access granted');
-        // Navigate immediately after successful login
-        const targetPath = role === 'student' ? '/feed' : '/admin';
-        // Use replace to prevent back button going to login
-        navigate(targetPath, { replace: true });
-      } else {
+     if (result.success) {
+  toast.success(role === 'student' ? 'Welcome to CampusVoice!' : 'Admin access granted');
+  // ❗ Do NOT navigate here
+  // Redirect will happen in useEffect after auth state is ready
+}
+ else {
         toast.error(result.error || 'Login failed');
       }
     } catch (error: any) {

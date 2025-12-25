@@ -13,14 +13,40 @@ import AdminDashboard from "./pages/AdminDashboard";
 import PublicStats from "./pages/PublicStats";
 import Profile from "./pages/Profile";
 import Notifications from "./pages/Notifications";
+import AccountSuspended from "./pages/AccountSuspended";
 import NotFound from "./pages/NotFound";
+import { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "./lib/firebase";
 
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: 'student' | 'admin' }) {
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { user, firebaseUser, isLoading, isAuthenticated } = useAuth();
+  const [isDisabled, setIsDisabled] = useState<boolean | null>(null);
+  const [checkingStatus, setCheckingStatus] = useState(true);
 
-  if (isLoading) {
+  useEffect(() => {
+    const checkDisabledStatus = async () => {
+      if (firebaseUser) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (userDoc.exists()) {
+            setIsDisabled(userDoc.data().isDisabled || false);
+          }
+        } catch (error) {
+          console.error('Error checking disabled status:', error);
+        }
+      }
+      setCheckingStatus(false);
+    };
+
+    if (!isLoading) {
+      checkDisabledStatus();
+    }
+  }, [firebaseUser, isLoading]);
+
+  if (isLoading || checkingStatus) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
@@ -30,6 +56,11 @@ function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode;
 
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
+  }
+
+  // Redirect disabled users to suspended page
+  if (isDisabled) {
+    return <Navigate to="/suspended" replace />;
   }
 
   if (requiredRole && user?.role !== requiredRole) {
@@ -108,6 +139,7 @@ function AppRoutes() {
           </ProtectedRoute>
         } 
       />
+      <Route path="/suspended" element={<AccountSuspended />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

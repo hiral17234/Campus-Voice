@@ -434,14 +434,36 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     const userReportCount = issues.filter(i => i.reports.some(r => r.reporterId === userId)).length + 1;
     const totalIssues = issues.length;
     
-    // If user has reported more than 20 issues and that's more than 50% of all issues, delete their account
+    // If user has reported more than 20 issues and that's more than 50% of all issues, disable their account
     if (userReportCount >= 20 && totalIssues > 0 && (userReportCount / totalIssues) > 0.5) {
       try {
         await updateDoc(doc(db, 'users', userId), {
           isDisabled: true,
-          disabledReason: 'Spam reporting detected',
+          disabledReason: 'Spam reporting detected - You have reported an unusually high number of issues',
           disabledAt: serverTimestamp(),
         });
+
+        // Create email notification record for the disabled user
+        await addDoc(collection(db, 'email_notifications'), {
+          userId,
+          type: 'account_disabled',
+          subject: 'Your CampusVoice Account Has Been Suspended',
+          message: 'Your account has been suspended due to spam reporting behavior. If you believe this is an error, you can submit an appeal.',
+          status: 'pending',
+          createdAt: serverTimestamp(),
+        });
+
+        // Create in-app notification for the user
+        await addDoc(collection(db, 'notifications'), {
+          userId,
+          type: 'account_disabled',
+          title: 'Account Suspended',
+          message: 'Your account has been suspended for spam reporting. You can submit an appeal.',
+          issueId: issueId,
+          isRead: false,
+          createdAt: serverTimestamp(),
+        });
+
         // Sign out the user if they're the current user
         if (currentUserId === userId) {
           await auth.signOut();

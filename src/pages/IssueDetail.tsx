@@ -11,12 +11,14 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { ReportModal } from '@/components/ReportModal';
 import { DeleteConfirmModal } from '@/components/DeleteConfirmModal';
 import { MediaGallery } from '@/components/MediaGallery';
+import { ReportsDetailView } from '@/components/ReportsDetailView';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { STATUS_LABELS, DEPARTMENT_LABELS, ReportReason } from '@/types';
 import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'sonner';
@@ -33,7 +35,8 @@ import {
   Trash2,
   Info,
   Building2,
-  Image
+  Image,
+  FileWarning
 } from 'lucide-react';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 
@@ -128,6 +131,7 @@ export default function IssueDetail() {
   const userVote = user ? issue.votedUsers[user.id] : null;
   const canDelete = user && issue.authorId === user.id && issue.status === 'pending';
   const hasUserReported = user && issue.reports.some(r => r.reporterId === user.id);
+  const isFaculty = user?.role === 'admin';
 
   const getTimelineColor = (status: string) => {
     switch (status) {
@@ -369,43 +373,85 @@ export default function IssueDetail() {
             </motion.div>
           </div>
 
-          {/* Sidebar - Timeline */}
-          <div className="lg:col-span-1">
+          {/* Sidebar - Timeline & Reports */}
+          <div className="lg:col-span-1 space-y-6">
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
             >
               <Card className="glass-card sticky top-24">
-                <CardHeader>
-                  <CardTitle className="text-lg">Action Timeline</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="relative">
-                    {issue.timeline.map((event, index) => (
-                      <div key={event.id} className="flex gap-3 pb-4 last:pb-0">
-                        <div className="flex flex-col items-center">
-                          <div className={`w-3 h-3 rounded-full ${getTimelineColor(event.status)}`} />
-                          {index < issue.timeline.length - 1 && (
-                            <div className="w-0.5 flex-1 bg-border mt-1" />
-                          )}
-                        </div>
-                        <div className="flex-1 pb-2">
-                          <p className="font-medium text-sm">{STATUS_LABELS[event.status] || event.status}</p>
-                          {event.note && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{event.note}</p>
-                          )}
-                          {event.adminName && (
-                            <p className="text-xs text-primary mt-0.5">By: {event.adminName}</p>
-                          )}
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {format(event.timestamp, 'MMM d, yyyy h:mm a')}
-                          </p>
-                        </div>
+                <Tabs defaultValue="timeline" className="w-full">
+                  <CardHeader className="pb-2">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="timeline">Timeline</TabsTrigger>
+                      <TabsTrigger value="reports" className="flex items-center gap-1">
+                        Reports
+                        {issue.reportCount > 0 && (
+                          <Badge variant="destructive" className="h-5 w-5 p-0 flex items-center justify-center text-xs">
+                            {issue.reportCount}
+                          </Badge>
+                        )}
+                      </TabsTrigger>
+                    </TabsList>
+                  </CardHeader>
+                  
+                  <CardContent className="pt-2">
+                    <TabsContent value="timeline" className="mt-0">
+                      <div className="relative">
+                        {issue.timeline.map((event, index) => (
+                          <div key={event.id} className="flex gap-3 pb-4 last:pb-0">
+                            <div className="flex flex-col items-center">
+                              <div className={`w-3 h-3 rounded-full ${getTimelineColor(event.status)}`} />
+                              {index < issue.timeline.length - 1 && (
+                                <div className="w-0.5 flex-1 bg-border mt-1" />
+                              )}
+                            </div>
+                            <div className="flex-1 pb-2">
+                              <p className="font-medium text-sm">{STATUS_LABELS[event.status] || event.status}</p>
+                              {event.note && (
+                                <p className="text-xs text-muted-foreground mt-0.5">{event.note}</p>
+                              )}
+                              {event.adminName && (
+                                <p className="text-xs text-primary mt-0.5">By: {event.adminName}</p>
+                              )}
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {format(event.timestamp, 'MMM d, yyyy h:mm a')}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
+                    </TabsContent>
+                    
+                    <TabsContent value="reports" className="mt-0">
+                      {isFaculty ? (
+                        <ReportsDetailView reports={issue.reports} title="All Reports" />
+                      ) : (
+                        <div className="text-center py-8">
+                          <FileWarning className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">
+                            {issue.reportCount > 0 
+                              ? `This issue has ${issue.reportCount} report${issue.reportCount > 1 ? 's' : ''}`
+                              : 'No reports yet'
+                            }
+                          </p>
+                          {!hasUserReported && user && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="mt-3"
+                              onClick={() => setShowReportModal(true)}
+                            >
+                              <Flag className="h-4 w-4 mr-1" />
+                              Report Issue
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </TabsContent>
+                  </CardContent>
+                </Tabs>
               </Card>
             </motion.div>
           </div>

@@ -1,48 +1,223 @@
-import { Suspense, useRef, useState } from 'react';
+import { Suspense, useRef, useState, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Text3D, Center, MeshDistortMaterial, Sphere, Box, Torus, Environment } from '@react-three/drei';
+import { Float, RoundedBox, Environment, MeshTransmissionMaterial } from '@react-three/drei';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, MessageSquare, Users, Shield, Megaphone } from 'lucide-react';
 import * as THREE from 'three';
 
-// 3D Floating Icon Component
-const FloatingIcon = ({ position, color, shape, speed = 1 }: { 
-  position: [number, number, number]; 
-  color: string; 
-  shape: 'sphere' | 'box' | 'torus';
-  speed?: number;
-}) => {
-  const meshRef = useRef<THREE.Mesh>(null);
+// 3D Shield Icon - Represents Trust & Security
+const Shield3D = ({ position, speed = 1 }: { position: [number, number, number]; speed?: number }) => {
+  const meshRef = useRef<THREE.Group>(null);
   
   useFrame((state) => {
     if (meshRef.current) {
-      meshRef.current.rotation.x = state.clock.elapsedTime * 0.3 * speed;
-      meshRef.current.rotation.y = state.clock.elapsedTime * 0.5 * speed;
+      meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.5 * speed) * 0.3;
+      meshRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * speed) * 0.1;
     }
   });
 
-  const renderShape = () => {
-    switch (shape) {
-      case 'sphere':
-        return <Sphere args={[0.5, 32, 32]} ref={meshRef}>
-          <MeshDistortMaterial color={color} speed={2} distort={0.3} radius={1} />
-        </Sphere>;
-      case 'box':
-        return <Box args={[0.7, 0.7, 0.7]} ref={meshRef}>
-          <meshStandardMaterial color={color} metalness={0.8} roughness={0.2} />
-        </Box>;
-      case 'torus':
-        return <Torus args={[0.4, 0.2, 16, 32]} ref={meshRef}>
-          <meshStandardMaterial color={color} metalness={0.6} roughness={0.3} />
-        </Torus>;
-    }
-  };
+  const shieldShape = useMemo(() => {
+    const shape = new THREE.Shape();
+    shape.moveTo(0, 1.2);
+    shape.bezierCurveTo(0.8, 1, 1, 0.5, 1, 0);
+    shape.bezierCurveTo(1, -0.8, 0.5, -1.2, 0, -1.5);
+    shape.bezierCurveTo(-0.5, -1.2, -1, -0.8, -1, 0);
+    shape.bezierCurveTo(-1, 0.5, -0.8, 1, 0, 1.2);
+    return shape;
+  }, []);
 
   return (
-    <Float speed={speed} rotationIntensity={0.5} floatIntensity={1.5} position={position}>
-      {renderShape()}
+    <Float speed={speed * 0.5} rotationIntensity={0.2} floatIntensity={0.8}>
+      <group ref={meshRef} position={position} scale={0.6}>
+        <mesh>
+          <extrudeGeometry args={[shieldShape, { depth: 0.3, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05 }]} />
+          <meshStandardMaterial color="#10b981" metalness={0.9} roughness={0.1} />
+        </mesh>
+        {/* Checkmark inside shield */}
+        <mesh position={[0, -0.1, 0.2]}>
+          <torusGeometry args={[0.3, 0.08, 8, 16, Math.PI * 1.5]} />
+          <meshStandardMaterial color="#ffffff" metalness={0.5} roughness={0.3} />
+        </mesh>
+      </group>
+    </Float>
+  );
+};
+
+// 3D Incognito/Anonymous Icon - Represents Anonymity
+const AnonymousMask3D = ({ position, speed = 1 }: { position: [number, number, number]; speed?: number }) => {
+  const meshRef = useRef<THREE.Group>(null);
+  
+  useFrame((state) => {
+    if (meshRef.current) {
+      meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.4 * speed) * 0.2;
+      meshRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.3 * speed) * 0.1;
+    }
+  });
+
+  return (
+    <Float speed={speed * 0.6} rotationIntensity={0.3} floatIntensity={1}>
+      <group ref={meshRef} position={position} scale={0.5}>
+        {/* Hat */}
+        <mesh position={[0, 0.8, 0]}>
+          <cylinderGeometry args={[0.8, 1, 0.3, 32]} />
+          <meshStandardMaterial color="#1a1a2e" metalness={0.8} roughness={0.2} />
+        </mesh>
+        <mesh position={[0, 1, 0]}>
+          <cylinderGeometry args={[0.5, 0.5, 0.4, 32]} />
+          <meshStandardMaterial color="#1a1a2e" metalness={0.8} roughness={0.2} />
+        </mesh>
+        {/* Glasses */}
+        <mesh position={[-0.4, 0.2, 0.5]}>
+          <torusGeometry args={[0.25, 0.05, 8, 32]} />
+          <meshStandardMaterial color="#1a1a2e" metalness={0.9} roughness={0.1} />
+        </mesh>
+        <mesh position={[0.4, 0.2, 0.5]}>
+          <torusGeometry args={[0.25, 0.05, 8, 32]} />
+          <meshStandardMaterial color="#1a1a2e" metalness={0.9} roughness={0.1} />
+        </mesh>
+        {/* Bridge */}
+        <mesh position={[0, 0.2, 0.5]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.03, 0.03, 0.3, 8]} />
+          <meshStandardMaterial color="#1a1a2e" metalness={0.9} roughness={0.1} />
+        </mesh>
+        {/* Lens glow */}
+        <mesh position={[-0.4, 0.2, 0.52]}>
+          <circleGeometry args={[0.2, 32]} />
+          <meshStandardMaterial color="#8b5cf6" emissive="#8b5cf6" emissiveIntensity={0.5} transparent opacity={0.7} />
+        </mesh>
+        <mesh position={[0.4, 0.2, 0.52]}>
+          <circleGeometry args={[0.2, 32]} />
+          <meshStandardMaterial color="#8b5cf6" emissive="#8b5cf6" emissiveIntensity={0.5} transparent opacity={0.7} />
+        </mesh>
+      </group>
+    </Float>
+  );
+};
+
+// 3D Megaphone - Represents Voice
+const Megaphone3D = ({ position, speed = 1 }: { position: [number, number, number]; speed?: number }) => {
+  const meshRef = useRef<THREE.Group>(null);
+  
+  useFrame((state) => {
+    if (meshRef.current) {
+      meshRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.6 * speed) * 0.15;
+      meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.4 * speed) * 0.1;
+    }
+  });
+
+  return (
+    <Float speed={speed * 0.7} rotationIntensity={0.2} floatIntensity={0.9}>
+      <group ref={meshRef} position={position} rotation={[0, 0, -0.3]} scale={0.4}>
+        {/* Main cone */}
+        <mesh rotation={[0, 0, Math.PI / 2]}>
+          <coneGeometry args={[0.8, 1.8, 32, 1, true]} />
+          <meshStandardMaterial color="#f59e0b" metalness={0.7} roughness={0.2} side={THREE.DoubleSide} />
+        </mesh>
+        {/* Handle */}
+        <mesh position={[-1.2, -0.3, 0]} rotation={[0, 0, Math.PI / 4]}>
+          <cylinderGeometry args={[0.12, 0.12, 0.8, 16]} />
+          <meshStandardMaterial color="#1a1a2e" metalness={0.8} roughness={0.2} />
+        </mesh>
+        {/* Sound waves */}
+        <mesh position={[1.2, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <torusGeometry args={[0.5, 0.03, 8, 32, Math.PI]} />
+          <meshStandardMaterial color="#f59e0b" emissive="#f59e0b" emissiveIntensity={0.5} transparent opacity={0.6} />
+        </mesh>
+        <mesh position={[1.5, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <torusGeometry args={[0.7, 0.03, 8, 32, Math.PI]} />
+          <meshStandardMaterial color="#f59e0b" emissive="#f59e0b" emissiveIntensity={0.4} transparent opacity={0.4} />
+        </mesh>
+      </group>
+    </Float>
+  );
+};
+
+// 3D Lock - Represents Security
+const Lock3D = ({ position, speed = 1 }: { position: [number, number, number]; speed?: number }) => {
+  const meshRef = useRef<THREE.Group>(null);
+  
+  useFrame((state) => {
+    if (meshRef.current) {
+      meshRef.current.rotation.y = state.clock.elapsedTime * 0.3 * speed;
+    }
+  });
+
+  return (
+    <Float speed={speed * 0.5} rotationIntensity={0.3} floatIntensity={0.7}>
+      <group ref={meshRef} position={position} scale={0.35}>
+        {/* Lock body */}
+        <RoundedBox args={[1.2, 1, 0.5]} radius={0.1} smoothness={4}>
+          <meshStandardMaterial color="#3b82f6" metalness={0.8} roughness={0.2} />
+        </RoundedBox>
+        {/* Lock shackle */}
+        <mesh position={[0, 0.7, 0]}>
+          <torusGeometry args={[0.4, 0.1, 16, 32, Math.PI]} />
+          <meshStandardMaterial color="#60a5fa" metalness={0.9} roughness={0.1} />
+        </mesh>
+        {/* Keyhole */}
+        <mesh position={[0, -0.1, 0.26]}>
+          <circleGeometry args={[0.12, 32]} />
+          <meshStandardMaterial color="#1a1a2e" />
+        </mesh>
+        <mesh position={[0, -0.25, 0.26]}>
+          <boxGeometry args={[0.08, 0.2, 0.01]} />
+          <meshStandardMaterial color="#1a1a2e" />
+        </mesh>
+      </group>
+    </Float>
+  );
+};
+
+// 3D Chat Bubble - Represents Communication
+const ChatBubble3D = ({ position, speed = 1 }: { position: [number, number, number]; speed?: number }) => {
+  const meshRef = useRef<THREE.Group>(null);
+  
+  useFrame((state) => {
+    if (meshRef.current) {
+      meshRef.current.scale.setScalar(0.4 + Math.sin(state.clock.elapsedTime * 2 * speed) * 0.02);
+      meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.5 * speed) * 0.2;
+    }
+  });
+
+  return (
+    <Float speed={speed * 0.8} rotationIntensity={0.2} floatIntensity={1.2}>
+      <group ref={meshRef} position={position} scale={0.4}>
+        {/* Main bubble */}
+        <RoundedBox args={[1.8, 1.2, 0.4]} radius={0.3} smoothness={4}>
+          <MeshTransmissionMaterial
+            backside
+            samples={4}
+            thickness={0.5}
+            chromaticAberration={0.1}
+            anisotropy={0.3}
+            distortion={0.1}
+            distortionScale={0.2}
+            temporalDistortion={0.1}
+            color="#ec4899"
+            transmission={0.9}
+          />
+        </RoundedBox>
+        {/* Bubble tail */}
+        <mesh position={[-0.6, -0.7, 0]} rotation={[0, 0, Math.PI / 4]}>
+          <coneGeometry args={[0.25, 0.4, 3]} />
+          <meshStandardMaterial color="#ec4899" transparent opacity={0.8} />
+        </mesh>
+        {/* Dots inside */}
+        <mesh position={[-0.4, 0, 0.22]}>
+          <sphereGeometry args={[0.1, 16, 16]} />
+          <meshStandardMaterial color="#ffffff" />
+        </mesh>
+        <mesh position={[0, 0, 0.22]}>
+          <sphereGeometry args={[0.1, 16, 16]} />
+          <meshStandardMaterial color="#ffffff" />
+        </mesh>
+        <mesh position={[0.4, 0, 0.22]}>
+          <sphereGeometry args={[0.1, 16, 16]} />
+          <meshStandardMaterial color="#ffffff" />
+        </mesh>
+      </group>
     </Float>
   );
 };
@@ -51,19 +226,38 @@ const FloatingIcon = ({ position, color, shape, speed = 1 }: {
 const Scene3D = () => {
   return (
     <>
-      <Environment preset="city" />
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[10, 10, 5]} intensity={1} />
-      <pointLight position={[-10, -10, -5]} intensity={0.5} color="#8b5cf6" />
+      <Environment preset="night" />
+      <ambientLight intensity={0.4} />
+      <directionalLight position={[10, 10, 5]} intensity={1.2} color="#ffffff" />
+      <pointLight position={[-10, 5, -5]} intensity={0.8} color="#8b5cf6" />
+      <pointLight position={[10, -5, 5]} intensity={0.6} color="#10b981" />
       
-      {/* Floating shapes */}
-      <FloatingIcon position={[-3, 2, -2]} color="#8b5cf6" shape="sphere" speed={1.2} />
-      <FloatingIcon position={[3, 1, -3]} color="#06b6d4" shape="box" speed={0.8} />
-      <FloatingIcon position={[-2, -1.5, -2]} color="#f59e0b" shape="torus" speed={1} />
-      <FloatingIcon position={[2.5, -1, -2]} color="#10b981" shape="sphere" speed={0.9} />
-      <FloatingIcon position={[0, 2.5, -4]} color="#ec4899" shape="box" speed={1.1} />
-      <FloatingIcon position={[-3.5, 0, -3]} color="#3b82f6" shape="torus" speed={0.7} />
-      <FloatingIcon position={[4, 0.5, -4]} color="#f97316" shape="sphere" speed={1.3} />
+      {/* Meaningful 3D Icons */}
+      <AnonymousMask3D position={[-2.5, 1.5, -1]} speed={0.8} />
+      <Shield3D position={[2.5, 1.2, -1.5]} speed={1} />
+      <Megaphone3D position={[-3, -0.8, -1]} speed={0.9} />
+      <Lock3D position={[3, -0.5, -1.5]} speed={1.1} />
+      <ChatBubble3D position={[0, 2.2, -2]} speed={0.7} />
+      
+      {/* Secondary decorative elements */}
+      <Float speed={0.5} floatIntensity={0.5}>
+        <mesh position={[-4, 0, -3]}>
+          <sphereGeometry args={[0.15, 16, 16]} />
+          <meshStandardMaterial color="#8b5cf6" emissive="#8b5cf6" emissiveIntensity={0.5} />
+        </mesh>
+      </Float>
+      <Float speed={0.6} floatIntensity={0.6}>
+        <mesh position={[4, 1.5, -3]}>
+          <sphereGeometry args={[0.12, 16, 16]} />
+          <meshStandardMaterial color="#10b981" emissive="#10b981" emissiveIntensity={0.5} />
+        </mesh>
+      </Float>
+      <Float speed={0.7} floatIntensity={0.4}>
+        <mesh position={[0, -1.5, -2.5]}>
+          <sphereGeometry args={[0.1, 16, 16]} />
+          <meshStandardMaterial color="#f59e0b" emissive="#f59e0b" emissiveIntensity={0.5} />
+        </mesh>
+      </Float>
     </>
   );
 };

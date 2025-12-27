@@ -49,8 +49,12 @@ export function TorchCanvas({ active, x, y, followCursor }: TorchProps) {
       ctx.fillStyle = "rgba(0,0,0,0.96)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      const tx = followCursor ? mouse.current.x : x;
-      const ty = followCursor ? mouse.current.y : y;
+      const offsetX = 40; // forward offset
+const offsetY = 40;
+
+const tx = followCursor ? mouse.current.x + offsetX : x;
+const ty = followCursor ? mouse.current.y + offsetY : y;
+
 
       // Cone beam
       ctx.save();

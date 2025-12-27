@@ -127,8 +127,17 @@ export default function Welcome() {
                 shadow-[0_0_60px_rgba(255,210,120,0.45)]
               "
             >
-
-              <div className="mt-20 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 text-left">
+              
+              {introComplete ? "Continue" : "Get Started"}
+              <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+ <div className="mt-20 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 text-left">
   {[
     {
       title: "Voice Your Concerns",
@@ -156,13 +165,3 @@ export default function Welcome() {
     </div>
   ))}
 </div>
-
-              {introComplete ? "Continue" : "Get Started"}
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}

@@ -12,7 +12,8 @@ export function TorchCanvas({ active, x, y, followCursor }: TorchProps) {
   const mouse = useRef({ x, y });
 
   useEffect(() => {
-    if (!active) return;
+// allow fade-out instead of instant cut
+if (!canvasRef.current) return;
 
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext("2d")!;
@@ -70,6 +71,18 @@ export function TorchCanvas({ active, x, y, followCursor }: TorchProps) {
 
       const tx = followCursor ? mouse.current.x + offsetX : x;
       const ty = followCursor ? mouse.current.y + offsetY : y;
+
+      // 🔆 Cursor / finger glow
+if (followCursor) {
+  ctx.beginPath();
+  ctx.arc(tx, ty, 18, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255,220,150,0.15)";
+  ctx.fill();
+}
+
+// 🔅 Smooth fade control
+ctx.globalAlpha = active ? 1 : 0;
+
 
       // Cone beam
       ctx.save();

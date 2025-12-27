@@ -62,50 +62,69 @@ const TorchBeam = ({
   if (reduceMotion || phase === "dark") return null;
 
   return (
-    <motion.div className="absolute inset-0 pointer-events-none">
+    <svg
+      className="absolute inset-0 pointer-events-none"
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+    >
+      <defs>
+        {/* Soft blur for realism */}
+        <filter id="blur">
+          <feGaussianBlur stdDeviation="2.5" />
+        </filter>
+
+        {/* Torch gradient */}
+        <linearGradient id="beamGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="rgba(255,230,160,0.95)" />
+          <stop offset="45%" stopColor="rgba(255,210,120,0.45)" />
+          <stop offset="100%" stopColor="rgba(255,210,120,0)" />
+        </linearGradient>
+      </defs>
+
       {phase === "searching" && (
-        <motion.div
-          className="absolute inset-0"
+        <motion.polygon
+          points="0,0 8,4 55,40"
+          fill="url(#beamGrad)"
+          filter="url(#blur)"
           animate={
             paused
               ? {}
               : {
-                  clipPath: [
-                    "polygon(0% 0%, 18% 12%, 28% 22%)",
-                    "polygon(0% 0%, 30% 30%, 42% 40%)",
-                    "polygon(0% 0%, 45% 55%, 58% 72%)",
+                  points: [
+                    // logo
+                    "0,0 10,6 40,30",
+                    // text
+                    "0,0 12,10 50,42",
+                    // CTA
+                    "0,0 15,20 60,65",
                   ],
-                  opacity: [0.9, 1, 0.95],
                 }
           }
           transition={{
-            duration: 4.8,
+            duration: 4.5,
             ease: "easeInOut",
             times: [0, 0.55, 1],
           }}
-          style={{
-            background:
-              "radial-gradient(circle at 0% 0%, rgba(255,210,120,0.6), rgba(255,210,120,0.25) 35%, transparent 65%)",
-          }}
-        >
-          <DustParticles />
-        </motion.div>
+        />
       )}
 
       {phase === "found" && (
-        <motion.div
-          className="absolute inset-0"
+        <motion.ellipse
+          cx="55"
+          cy="70"
+          rx="28"
+          ry="18"
+          fill="rgba(255,210,120,0.25)"
+          filter="url(#blur)"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          style={{
-            background:
-              "radial-gradient(circle at 50% 72%, rgba(255,210,120,0.25), transparent 60%)",
-          }}
+          transition={{ duration: 0.6 }}
         />
       )}
-    </motion.div>
+    </svg>
   );
 };
+
 
 /* ---------------- VOICE WAVE ---------------- */
 const VoiceWave = ({ reduceMotion }: { reduceMotion: boolean }) => (

@@ -101,7 +101,7 @@ This project is developed for academic and educational purposes.
 CampusVoice
 Giving students a platform where their voices matter.
 
-#👩‍💻 Developed by
+# 👩‍💻 Developed by
 
 Hiral Goyal
 

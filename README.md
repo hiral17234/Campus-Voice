@@ -104,7 +104,7 @@ Giving students a platform where their voices matter.
 ## Other supporting websites (Still in devlopment) - 
 
 #NoteHall: 
-Github Repositiory - https://github.com/hiral17234/NoteHall
+Github Repository - https://github.com/hiral17234/NoteHall
 Live Link : https://notehall.vercel.app/
 
 ## 👩‍💻 Developed by

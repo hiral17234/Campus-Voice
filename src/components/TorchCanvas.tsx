@@ -71,8 +71,11 @@ if (!canvasRef.current) return;
       ctx.fillStyle = "rgba(0,0,0,0.93)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 🌫️ Soft ambient reveal so content is visible
-const ambient = ctx.createRadialGradient(tx, ty, 0, tx, ty, 260);
+      // Torch origin = cursor position
+const tx = followCursor ? mouse.current.x : x;
+const ty = followCursor ? mouse.current.y : y;
+
+      const ambient = ctx.createRadialGradient(tx, ty, 0, tx, ty, 260);
 ambient.addColorStop(0, "rgba(255,220,160,0.12)");
 ambient.addColorStop(1, "rgba(0,0,0,0)");
 
@@ -83,10 +86,13 @@ ctx.arc(tx, ty, 260, 0, Math.PI * 2);
 ctx.fill();
 ctx.globalCompositeOperation = "source-over";
 
+
+      // 🌫️ Soft ambient reveal so content is visible
+
+
       
 // Torch origin = cursor position
-const tx = followCursor ? mouse.current.x : x;
-const ty = followCursor ? mouse.current.y : y;
+
 
       // 🔁 Calculate torch direction based on movement
 const dx = tx - lastPos.current.x;

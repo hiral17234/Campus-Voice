@@ -26,13 +26,29 @@ export function TorchCanvas({ active, x, y, followCursor }: TorchProps) {
     resize();
     window.addEventListener("resize", resize);
 
-    const onMove = (e: MouseEvent) => {
+    // 🔥 DESKTOP
+    const onMouseMove = (e: MouseEvent) => {
       mouse.current.x = e.clientX;
       mouse.current.y = e.clientY;
     };
 
+    // 📱 MOBILE
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        mouse.current.x = e.touches[0].clientX;
+        mouse.current.y = e.touches[0].clientY;
+      }
+    };
+
     if (followCursor) {
-      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("touchmove", onTouchMove, { passive: true });
+    }
+
+    // Start centered on mobile
+    if ("ontouchstart" in window) {
+      mouse.current.x = window.innerWidth / 2;
+      mouse.current.y = window.innerHeight / 2;
     }
 
     const dust = Array.from({ length: 120 }).map(() => ({
@@ -49,12 +65,11 @@ export function TorchCanvas({ active, x, y, followCursor }: TorchProps) {
       ctx.fillStyle = "rgba(0,0,0,0.96)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      const offsetX = 40; // forward offset
-const offsetY = 40;
+      const offsetX = 40;
+      const offsetY = 40;
 
-const tx = followCursor ? mouse.current.x + offsetX : x;
-const ty = followCursor ? mouse.current.y + offsetY : y;
-
+      const tx = followCursor ? mouse.current.x + offsetX : x;
+      const ty = followCursor ? mouse.current.y + offsetY : y;
 
       // Cone beam
       ctx.save();
@@ -75,7 +90,7 @@ const ty = followCursor ? mouse.current.y + offsetY : y;
       ctx.fill();
       ctx.restore();
 
-      // Dust particles (only visible in beam)
+      // Dust
       ctx.globalCompositeOperation = "destination-out";
       dust.forEach((p) => {
         p.y += p.v;
@@ -96,7 +111,8 @@ const ty = followCursor ? mouse.current.y + offsetY : y;
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
-      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("touchmove", onTouchMove);
     };
   }, [active, x, y, followCursor]);
 

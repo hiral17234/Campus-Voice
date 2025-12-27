@@ -40,7 +40,7 @@ export default function Welcome() {
   useEffect(() => {
     const audio = new Audio("/torch-hum.mp3");
     audio.loop = true;
-    audio.volume = 0.04;
+    audio.volume = 0.12;
 
     const play = () => {
       audio.play().catch(() => {});

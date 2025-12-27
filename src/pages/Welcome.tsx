@@ -1,3 +1,5 @@
+const [torchActive, setTorchActive] = useState(true);
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
@@ -60,11 +62,12 @@ export default function Welcome() {
     <div className="relative min-h-screen overflow-hidden bg-[#070b12] text-white">
       {/* TORCH OVERLAY */}
       <TorchCanvas
-        active={true}
-        x={pos.x}
-        y={pos.y}
-        followCursor={followCursor}
-      />
+  active={torchActive}
+  x={pos.x}
+  y={pos.y}
+  followCursor={followCursor}
+/>
+
 
       {/* BACKGROUND */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#05070c] via-[#0b1220] to-black" />
@@ -95,16 +98,22 @@ export default function Welcome() {
           </div>
 
           <div className="mt-10">
-            <Button
-              size="lg"
-              onClick={() => navigate("/login")}
-              className="
-                px-10 py-6 text-lg rounded-full
-                bg-gradient-to-r from-yellow-400 to-purple-600
-                text-black hover:opacity-90
-                shadow-[0_0_60px_rgba(255,210,120,0.45)]
-              "
-            >
+           <Button
+  size="lg"
+  onClick={() => {
+    setTorchActive(false);     // 🔦 OFF
+    navigate("/login");        // 🚀 GO NEXT
+  }}
+  className="
+    px-10 py-6 text-lg rounded-full
+    bg-gradient-to-r from-yellow-400 to-purple-600
+    text-black hover:opacity-90
+    shadow-[0_0_60px_rgba(255,210,120,0.45)]
+  "
+>
+  Get Started <ArrowRight className="ml-2 w-5 h-5" />
+</Button>
+
               Get Started <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
           </div>

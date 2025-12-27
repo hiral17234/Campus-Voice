@@ -132,7 +132,6 @@ ctx.fill();
 
 // Direction torch is pointing (upwards from cursor)
 
-      const lastPos = useRef({ x, y });
 
 
       const gradient = ctx.createRadialGradient(0, 0, 20, 0, 0, 420);

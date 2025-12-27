@@ -5,7 +5,15 @@ import { Button } from "@/components/ui/button";
 import { TorchCanvas } from "@/components/TorchCanvas";
 
 export default function Welcome() {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); 
+
+  useEffect(() => {
+  const seen = localStorage.getItem("campusvoice_intro_done");
+  if (seen === "true") {
+    navigate("/login");
+  }
+}, [navigate]);
+
 
   const [torchActive, setTorchActive] = useState(true);
   const [introComplete, setIntroComplete] = useState(false);
@@ -54,11 +62,17 @@ export default function Welcome() {
     window.addEventListener("click", play);
 
     return () => {
+  const fadeOut = setInterval(() => {
+    audio.volume = Math.max(audio.volume - 0.02, 0);
+    if (audio.volume === 0) {
       audio.pause();
-      audio.currentTime = 0;
-      window.removeEventListener("click", play);
-    };
-  }, [torchActive]);
+      clearInterval(fadeOut);
+    }
+  }, 40);
+
+  window.removeEventListener("click", play);
+};
+[torchActive]);
 
   const handleGetStarted = () => {
     if (!introComplete) {

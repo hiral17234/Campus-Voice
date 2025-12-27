@@ -17,37 +17,50 @@ const BackgroundDots = () => (
 );
 
 /* ---------------- LIGHTHOUSE SWEEP ---------------- */
-const LighthouseBeam = ({
-  active,
-  reduceMotion,
-}: {
-  active: boolean;
-  reduceMotion: boolean;
-}) => {
-  if (!active) return null;
-
+const LighthouseBeam = ({ phase }: { phase: "searching" | "found" }) => {
   return (
-    <motion.div
-      className="absolute inset-0 pointer-events-none"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
-      <motion.div
-        className="absolute -left-1/2 -top-1/2 w-[200%] h-[200%]"
-        style={{
-          background:
-            "conic-gradient(from 45deg, rgba(255,210,120,0.35), rgba(255,210,120,0.12), transparent 60%)",
-        }}
-        animate={reduceMotion ? {} : { rotate: 360 }}
-        transition={{
-          duration: 5,
-          ease: "linear",
-        }}
-      />
+    <motion.div className="absolute inset-0 pointer-events-none">
+      {phase === "searching" && (
+        <motion.div
+          className="absolute inset-0"
+          initial={{
+            clipPath: "polygon(0% 0%, 0% 0%, 0% 0%)",
+          }}
+          animate={{
+            clipPath: [
+              // Search logo area
+              "polygon(0% 0%, 25% 18%, 35% 28%)",
+              // Search text
+              "polygon(0% 0%, 40% 35%, 55% 45%)",
+              // Search CTA
+              "polygon(0% 0%, 50% 65%, 65% 80%)",
+            ],
+          }}
+          transition={{
+            duration: 4.5,
+            ease: "easeInOut",
+            times: [0, 0.5, 1],
+          }}
+          style={{
+            background:
+              "radial-gradient(circle at 0% 0%, rgba(255,210,120,0.55), rgba(255,210,120,0.15) 40%, transparent 65%)",
+          }}
+        />
+      )}
+
+      {phase === "found" && (
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(circle at 50% 75%, rgba(255,210,120,0.25), transparent 60%)",
+          }}
+        />
+      )}
     </motion.div>
   );
 };
+
 
 /* ---------------- VOICE WAVE (MIC AWARE) ---------------- */
 const VoiceWave = ({ reduceMotion }: { reduceMotion: boolean }) => {

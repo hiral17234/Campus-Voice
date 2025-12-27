@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { TorchCanvas } from "@/components/effects/TorchCanvas";
+import { TorchCanvas } from "@/components/TorchCanvas";
 
 export default function Welcome() {
   const navigate = useNavigate();

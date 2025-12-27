@@ -3,7 +3,7 @@
 
 > **When voices are scattered, we help them get found.**
 
-🔗 **Live Demo:** https://your-deployment-link-here  
+🔗 **Live Demo:** (https://campusvoice-chi.vercel.app/) 
 📌 **Status:** Active Development
 
 ---

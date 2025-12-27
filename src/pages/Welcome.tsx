@@ -98,6 +98,12 @@ export default function Welcome() {
 
       <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
         <div className="w-full max-w-3xl text-center flex flex-col items-center">
+          <img
+  src="/campusvoice-logo.png"
+  alt="CampusVoice"
+  className="h-12 mb-6 opacity-90"
+/>
+
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-4">
             <span className="bg-gradient-to-r from-yellow-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
               CampusVoice
@@ -121,6 +127,36 @@ export default function Welcome() {
                 shadow-[0_0_60px_rgba(255,210,120,0.45)]
               "
             >
+
+              <div className="mt-20 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 text-left">
+  {[
+    {
+      title: "Voice Your Concerns",
+      desc: "Report campus issues anonymously and track their resolution in real time.",
+    },
+    {
+      title: "Community Driven",
+      desc: "Upvote issues that matter and see what affects your peers.",
+    },
+    {
+      title: "Secure & Private",
+      desc: "Your identity is protected while your voice creates impact.",
+    },
+    {
+      title: "Get Heard",
+      desc: "Direct communication channel between students and administration.",
+    },
+  ].map((item, i) => (
+    <div
+      key={i}
+      className="bg-white/5 backdrop-blur-md rounded-xl p-5 border border-white/10"
+    >
+      <h3 className="font-semibold mb-2">{item.title}</h3>
+      <p className="text-sm text-white/70">{item.desc}</p>
+    </div>
+  ))}
+</div>
+
               {introComplete ? "Continue" : "Get Started"}
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>

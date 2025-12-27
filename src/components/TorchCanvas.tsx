@@ -11,6 +11,8 @@ export function TorchCanvas({ active, x, y, followCursor }: TorchProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mouse = useRef({ x, y });
   const lastPos = useRef({ x, y });
+    const lastAngle = useRef(0);
+
 
 
   useEffect(() => {
@@ -65,109 +67,57 @@ if (!canvasRef.current) return;
     }));
 
     const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Darkness
-      ctx.fillStyle = "rgba(0,0,0,0.93)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // 1️⃣ Darkness layer
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,0.92)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Torch origin = cursor position
-const tx = followCursor ? mouse.current.x : x;
-const ty = followCursor ? mouse.current.y : y;
+  // Torch origin
+  const tx = followCursor ? mouse.current.x : x;
+  const ty = followCursor ? mouse.current.y : y;
 
-      const ambient = ctx.createRadialGradient(tx, ty, 0, tx, ty, 260);
-ambient.addColorStop(0, "rgba(255,220,160,0.12)");
-ambient.addColorStop(1, "rgba(0,0,0,0)");
+  // 2️⃣ Smooth movement (LERP)
+  const lerp = 0.18;
+  lastPos.current.x += (tx - lastPos.current.x) * lerp;
+  lastPos.current.y += (ty - lastPos.current.y) * lerp;
 
-ctx.globalCompositeOperation = "destination-out";
-ctx.fillStyle = ambient;
-ctx.beginPath();
-ctx.arc(tx, ty, 260, 0, Math.PI * 2);
-ctx.fill();
-ctx.globalCompositeOperation = "source-over";
+  const dx = lastPos.current.x - (lastPos.current.prevX ?? lastPos.current.x);
+  const dy = lastPos.current.y - (lastPos.current.prevY ?? lastPos.current.y);
 
+  const targetAngle =
+    Math.abs(dx) + Math.abs(dy) > 0.01
+      ? Math.atan2(dy, dx)
+      : lastAngle.current;
 
-      // 🌫️ Soft ambient reveal so content is visible
+  lastAngle.current += (targetAngle - lastAngle.current) * 0.25;
 
+  lastPos.current.prevX = lastPos.current.x;
+  lastPos.current.prevY = lastPos.current.y;
 
-      
-// Torch origin = cursor position
+  // 3️⃣ Light cut (ONLY ONCE)
+  ctx.globalCompositeOperation = "destination-out";
+  ctx.translate(lastPos.current.x, lastPos.current.y);
+  ctx.rotate(lastAngle.current);
 
+  const gradient = ctx.createRadialGradient(0, 0, 40, 0, 0, 520);
+  gradient.addColorStop(0, "rgba(255,240,200,1)");
+  gradient.addColorStop(0.4, "rgba(255,220,160,0.7)");
+  gradient.addColorStop(1, "rgba(0,0,0,0)");
 
-      // 🔁 Calculate torch direction based on movement
-const dx = tx - lastPos.current.x;
-const dy = ty - lastPos.current.y;
-
-const angle =
-  Math.abs(dx) + Math.abs(dy) > 0.5
-    ? Math.atan2(dy, dx)
-    : 0;
-
-lastPos.current = { x: tx, y: ty };
-
-
-      // 🔆 Cursor / finger glow
-if (followCursor) {
+  ctx.fillStyle = gradient;
   ctx.beginPath();
-  ctx.arc(tx, ty, 18, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(255,220,150,0.15)";
+  ctx.moveTo(0, 0);
+  ctx.arc(0, 0, 520, -0.22, 0.22);
+  ctx.closePath();
   ctx.fill();
-}
 
-// 🔅 Smooth fade control
-ctx.globalAlpha = active ? 1 : 0;
-
-      // 🔆 Soft halo at torch head
-const halo = ctx.createRadialGradient(tx, ty, 0, tx, ty, 120);
-halo.addColorStop(0, "rgba(255,230,180,0.25)");
-halo.addColorStop(0.5, "rgba(255,200,120,0.08)");
-halo.addColorStop(1, "rgba(255,200,120,0)");
-
-ctx.fillStyle = halo;
-ctx.beginPath();
-ctx.arc(tx, ty, 120, 0, Math.PI * 2);
-ctx.fill();
+  ctx.restore();
+  raf = requestAnimationFrame(draw);
+};
 
 
-
-      // Cone beam
-      ctx.save();
-      ctx.globalCompositeOperation = "destination-out";
-      ctx.translate(tx, ty);
-      ctx.rotate(angle);
-
-// Direction torch is pointing (upwards from cursor)
-
-
-
-      const gradient = ctx.createRadialGradient(0, 0, 20, 0, 0, 420);
-      gradient.addColorStop(0, "rgba(255,240,200,1)");
-      gradient.addColorStop(0.4, "rgba(255,220,160,0.6)");
-      gradient.addColorStop(1, "rgba(0,0,0,0)");
-
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.arc(0, 0, 420, -0.35, 0.35);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-
-      // Dust
-      ctx.globalCompositeOperation = "destination-out";
-      dust.forEach((p) => {
-        p.y += p.v;
-        if (p.y > canvas.height) p.y = 0;
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255,255,255,0.15)";
-        ctx.fill();
-      });
-      ctx.globalCompositeOperation = "source-over";
-
-      raf = requestAnimationFrame(draw);
-    };
 
     draw();
 

@@ -47,32 +47,33 @@ export default function Welcome() {
   }, [torchActive]);
 
   // 🔊 Ambient sound
-  useEffect(() => {
-    if (!torchActive) return;
+ useEffect(() => {
+  if (!torchActive) return;
 
-    const audio = new Audio("/torch-hum.mp3");
-    audio.loop = true;
-    audio.volume = 0.12;
+  const audio = new Audio("/torch-hum.mp3");
+  audio.loop = true;
+  audio.volume = 0.12;
 
-    const play = () => {
-      audio.play().catch(() => {});
-      window.removeEventListener("click", play);
-    };
+  const play = () => {
+    audio.play().catch(() => {});
+    window.removeEventListener("click", play);
+  };
 
-    window.addEventListener("click", play);
+  window.addEventListener("click", play);
 
-    return () => {
-  const fadeOut = setInterval(() => {
-    audio.volume = Math.max(audio.volume - 0.02, 0);
-    if (audio.volume === 0) {
-      audio.pause();
-      clearInterval(fadeOut);
-    }
-  }, 40);
+  return () => {
+    const fadeOut = setInterval(() => {
+      audio.volume = Math.max(audio.volume - 0.02, 0);
+      if (audio.volume === 0) {
+        audio.pause();
+        clearInterval(fadeOut);
+      }
+    }, 40);
 
-  window.removeEventListener("click", play);
-};
-[torchActive]);
+    window.removeEventListener("click", play);
+  };
+}, [torchActive]);
+
 
   const handleGetStarted = () => {
     if (!introComplete) {

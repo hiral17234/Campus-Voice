@@ -65,12 +65,10 @@ if (!canvasRef.current) return;
       // Darkness
       ctx.fillStyle = "rgba(0,0,0,0.96)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      const offsetX = 40;
-      const offsetY = 40;
-
-      const tx = followCursor ? mouse.current.x + offsetX : x;
-      const ty = followCursor ? mouse.current.y + offsetY : y;
+      
+// Torch origin = cursor position
+const tx = followCursor ? mouse.current.x : x;
+const ty = followCursor ? mouse.current.y : y;
 
       // 🔆 Cursor / finger glow
 if (followCursor) {
@@ -83,12 +81,29 @@ if (followCursor) {
 // 🔅 Smooth fade control
 ctx.globalAlpha = active ? 1 : 0;
 
+      // 🔆 Soft halo at torch head
+const halo = ctx.createRadialGradient(tx, ty, 0, tx, ty, 120);
+halo.addColorStop(0, "rgba(255,230,180,0.25)");
+halo.addColorStop(0.5, "rgba(255,200,120,0.08)");
+halo.addColorStop(1, "rgba(255,200,120,0)");
+
+ctx.fillStyle = halo;
+ctx.beginPath();
+ctx.arc(tx, ty, 120, 0, Math.PI * 2);
+ctx.fill();
+
+
 
       // Cone beam
       ctx.save();
       ctx.globalCompositeOperation = "destination-out";
       ctx.translate(tx, ty);
-      ctx.rotate(Math.atan2(ty - 80, tx - 80));
+// Direction torch is pointing (upwards from cursor)
+const angle = followCursor
+  ? -Math.PI / 2
+  : Math.atan2(ty - y, tx - x);
+
+ctx.rotate(angle);
 
       const gradient = ctx.createRadialGradient(0, 0, 20, 0, 0, 420);
       gradient.addColorStop(0, "rgba(255,240,200,1)");

@@ -99,7 +99,13 @@ This project is developed for academic and educational purposes.
 ## ✨ Built With Purpose
 
 CampusVoice
-Giving students a platform where their voices matter.
+Giving students a platform where their voices matter. 
+
+## Other supporting websites (Still in devlopment) - 
+
+#NoteHall: 
+Github Repositiory - https://github.com/hiral17234/NoteHall
+Live Link : https://notehall.vercel.app/
 
 ## 👩‍💻 Developed by
 

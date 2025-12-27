@@ -79,7 +79,7 @@ if (!canvasRef.current) return;
   const ty = followCursor ? mouse.current.y : y;
 
   // 2️⃣ Smooth movement (LERP)
-  const lerp = 0.18;
+  const lerp = 0.35;
   lastPos.current.x += (tx - lastPos.current.x) * lerp;
   lastPos.current.y += (ty - lastPos.current.y) * lerp;
 

@@ -92,18 +92,12 @@ Traditional campus communication systems are often:
 
 ---
 
-## 📂 Project Structure
+## 📄 License
 
-```txt
-src/
-├── pages/
-│   ├── Welcome.tsx
-│   ├── Login.tsx
-│   ├── Dashboard.tsx
-├── components/
-│   ├── ui/
-│   ├── layout/
-├── contexts/
-├── lib/
-└── assets/
+This project is developed for academic and educational purposes.
+
+## ✨ Built With Purpose
+
+CampusVoice
+Giving students a platform where their voices matter.
 

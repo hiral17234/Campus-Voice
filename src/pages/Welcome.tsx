@@ -7,17 +7,18 @@ import { TorchCanvas } from "@/components/effects/TorchCanvas";
 export default function Welcome() {
   const navigate = useNavigate();
 
-  // Torch position
   const [pos, setPos] = useState({ x: 80, y: 80 });
   const [followCursor, setFollowCursor] = useState(false);
 
-  // Intro search animation
+  // 🔦 Torch search animation
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const steps = [
-      { x: 80, y: 80 },                                // corner start
-      { x: window.innerWidth / 2, y: 220 },            // logo
-      { x: window.innerWidth / 2, y: 330 },            // tagline
-      { x: window.innerWidth / 2, y: 520 },            // CTA
+      { x: 80, y: 80 },                         // corner
+      { x: window.innerWidth / 2, y: 220 },     // title
+      { x: window.innerWidth / 2, y: 330 },     // text
+      { x: window.innerWidth / 2, y: 520 },     // button
     ];
 
     let i = 0;
@@ -26,7 +27,6 @@ export default function Welcome() {
       setPos(steps[i]);
       i++;
 
-      // After search ends → follow cursor
       if (i >= steps.length) {
         clearInterval(interval);
         setFollowCursor(true);
@@ -36,23 +36,29 @@ export default function Welcome() {
     return () => clearInterval(interval);
   }, []);
 
-  // Ambient torch sound (optional but real)
+  // 🔊 Ambient sound (safe autoplay)
   useEffect(() => {
     const audio = new Audio("/torch-hum.mp3");
     audio.loop = true;
-    audio.volume = 0.07;
+    audio.volume = 0.04;
 
-    audio.play().catch(() => {});
+    const play = () => {
+      audio.play().catch(() => {});
+      window.removeEventListener("click", play);
+    };
+
+    window.addEventListener("click", play);
 
     return () => {
       audio.pause();
       audio.currentTime = 0;
+      window.removeEventListener("click", play);
     };
   }, []);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#070b12] text-white">
-      {/* REAL TORCH OVERLAY */}
+      {/* TORCH OVERLAY */}
       <TorchCanvas
         active={true}
         x={pos.x}
@@ -66,21 +72,18 @@ export default function Welcome() {
       {/* CONTENT */}
       <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
         <div className="w-full max-w-3xl text-center flex flex-col items-center">
-          {/* LOGO / TITLE */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-4">
             <span className="bg-gradient-to-r from-yellow-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
               CampusVoice
             </span>
           </h1>
 
-          {/* TAGLINE */}
           <p className="text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed mb-6">
             When voices are scattered, we help them get found.
             <br />
             Report issues. Be heard. Create change.
           </p>
 
-          {/* VOICE WAVE */}
           <div className="flex items-end gap-2 mt-6">
             {[18, 30, 46, 28, 40, 24, 50].map((h, i) => (
               <span
@@ -91,7 +94,6 @@ export default function Welcome() {
             ))}
           </div>
 
-          {/* CTA */}
           <div className="mt-10">
             <Button
               size="lg"

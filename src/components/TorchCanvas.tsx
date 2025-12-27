@@ -10,6 +10,8 @@ type TorchProps = {
 export function TorchCanvas({ active, x, y, followCursor }: TorchProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mouse = useRef({ x, y });
+  const lastPos = useRef({ x, y });
+
 
   useEffect(() => {
 // allow fade-out instead of instant cut
@@ -52,6 +54,9 @@ if (!canvasRef.current) return;
       mouse.current.y = window.innerHeight / 2;
     }
 
+    lastPos.current = { x: mouse.current.x, y: mouse.current.y };
+
+
     const dust = Array.from({ length: 120 }).map(() => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
@@ -63,12 +68,37 @@ if (!canvasRef.current) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Darkness
-      ctx.fillStyle = "rgba(0,0,0,0.96)";
+      ctx.fillStyle = "rgba(0,0,0,0.93)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 🌫️ Soft ambient reveal so content is visible
+const ambient = ctx.createRadialGradient(tx, ty, 0, tx, ty, 260);
+ambient.addColorStop(0, "rgba(255,220,160,0.12)");
+ambient.addColorStop(1, "rgba(0,0,0,0)");
+
+ctx.globalCompositeOperation = "destination-out";
+ctx.fillStyle = ambient;
+ctx.beginPath();
+ctx.arc(tx, ty, 260, 0, Math.PI * 2);
+ctx.fill();
+ctx.globalCompositeOperation = "source-over";
+
       
 // Torch origin = cursor position
 const tx = followCursor ? mouse.current.x : x;
 const ty = followCursor ? mouse.current.y : y;
+
+      // 🔁 Calculate torch direction based on movement
+const dx = tx - lastPos.current.x;
+const dy = ty - lastPos.current.y;
+
+const angle =
+  Math.abs(dx) + Math.abs(dy) > 0.5
+    ? Math.atan2(dy, dx)
+    : 0;
+
+lastPos.current = { x: tx, y: ty };
+
 
       // 🔆 Cursor / finger glow
 if (followCursor) {
@@ -98,12 +128,12 @@ ctx.fill();
       ctx.save();
       ctx.globalCompositeOperation = "destination-out";
       ctx.translate(tx, ty);
-// Direction torch is pointing (upwards from cursor)
-const angle = followCursor
-  ? -Math.PI / 2
-  : Math.atan2(ty - y, tx - x);
+      ctx.rotate(angle);
 
-ctx.rotate(angle);
+// Direction torch is pointing (upwards from cursor)
+
+      const lastPos = useRef({ x, y });
+
 
       const gradient = ctx.createRadialGradient(0, 0, 20, 0, 0, 420);
       gradient.addColorStop(0, "rgba(255,240,200,1)");

@@ -1,4 +1,4 @@
-#🎓 CampusVoice  
+# 🎓 CampusVoice  
 ### A Community-Driven Campus Issue Reporting Platform
 
 > **When voices are scattered, we help them get found.**

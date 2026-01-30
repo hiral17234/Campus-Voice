@@ -12,13 +12,17 @@ import {
   Users,
   CheckCircle,
   Sparkles,
-  ChevronDown
+  ChevronDown,
+  Code2,
+  GraduationCap,
+  MapPin
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FloatingParticles } from "@/components/welcome/FloatingParticles";
 import { AnimatedText, AnimatedCharacters } from "@/components/welcome/AnimatedText";
 import { CountUp } from "@/components/welcome/CountUp";
 import { ScrollProgress } from "@/components/welcome/ScrollProgress";
+import { FloatingNav } from "@/components/welcome/FloatingNav";
 
 export default function Welcome() {
   const navigate = useNavigate();
@@ -64,7 +68,7 @@ export default function Welcome() {
   ];
 
   const stats = [
-    { value: 10000, suffix: "+", label: "Issues Raised" },
+    { value: 15000, suffix: "+", label: "Issues Raised" },
     { value: 95, suffix: "%", label: "Resolution Rate" },
     { value: 100, suffix: "%", label: "Anonymous" }
   ];
@@ -73,9 +77,10 @@ export default function Welcome() {
     <div className="min-h-screen bg-gradient-to-b from-[#05070c] via-[#0b1220] to-[#0f172a] text-white overflow-x-hidden">
       <ScrollProgress />
       <FloatingParticles />
+      <FloatingNav />
 
       {/* Hero Section */}
-      <section className="min-h-screen relative flex flex-col items-center justify-center px-4 sm:px-6">
+      <section id="hero" className="min-h-screen relative flex flex-col items-center justify-center px-4 sm:px-6">
         {/* Vignette overlay */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(5,7,12,0.8)_70%)] pointer-events-none z-10" />
         
@@ -85,14 +90,35 @@ export default function Welcome() {
           animate={{ opacity: 1 }}
           transition={{ duration: 1 }}
         >
-          <motion.img
-            src="/campusvoice-logo.png"
-            alt="CampusVoice"
-            className="h-14 sm:h-20 mx-auto mb-8"
+          {/* Animated Glowy Logo */}
+          <motion.div
+            className="relative mx-auto mb-8 w-fit"
             initial={{ opacity: 0, scale: 0.8, y: -30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.8, type: "spring" }}
-          />
+          >
+            <motion.div
+              className="absolute inset-0 blur-2xl bg-gradient-to-r from-yellow-400/40 via-purple-500/40 to-pink-500/40 rounded-full"
+              animate={{ 
+                scale: [1, 1.2, 1],
+                opacity: [0.5, 0.8, 0.5]
+              }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.img
+              src="/campusvoice-logo.png"
+              alt="CampusVoice"
+              className="relative h-14 sm:h-20 drop-shadow-[0_0_30px_rgba(251,191,36,0.6)]"
+              animate={{ 
+                filter: [
+                  "drop-shadow(0 0 20px rgba(251,191,36,0.4))",
+                  "drop-shadow(0 0 40px rgba(251,191,36,0.7))",
+                  "drop-shadow(0 0 20px rgba(251,191,36,0.4))"
+                ]
+              }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </motion.div>
           
           <h1 className="text-4xl sm:text-6xl md:text-8xl font-bold mb-6">
             <AnimatedCharacters 
@@ -102,7 +128,7 @@ export default function Welcome() {
             />
             <br />
             <AnimatedCharacters 
-              text="Protected" 
+              text="CampusVoice" 
               className="text-white"
               delay={0.8}
             />
@@ -144,7 +170,7 @@ export default function Welcome() {
       </section>
 
       {/* Problem Section */}
-      <section className="min-h-screen flex items-center justify-center px-4 sm:px-6 py-20">
+      <section id="problem" className="min-h-screen flex items-center justify-center px-4 sm:px-6 py-20">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0 }}
@@ -195,7 +221,7 @@ export default function Welcome() {
       </section>
 
       {/* Solution Section */}
-      <section className="min-h-screen flex items-center justify-center px-4 sm:px-6 py-20 relative">
+      <section id="solution" className="min-h-screen flex items-center justify-center px-4 sm:px-6 py-20 relative">
         {/* Glow effect */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-[120px]" />
@@ -214,7 +240,7 @@ export default function Welcome() {
               className="h-16 sm:h-24 mx-auto mb-6 drop-shadow-[0_0_30px_rgba(251,191,36,0.5)]"
             />
             <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold mb-4">
-              <AnimatedText text="Where whispers become" className="text-white" />
+              <AnimatedText text="Where scattered whispers become" className="text-white" />
               <br />
               <span className="bg-gradient-to-r from-yellow-400 to-purple-500 bg-clip-text text-transparent">
                 <AnimatedText text="a powerful roar" delay={0.3} />
@@ -245,7 +271,7 @@ export default function Welcome() {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-20 sm:py-32 px-4 sm:px-6">
+      <section id="how-it-works" className="py-20 sm:py-32 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto">
           <motion.div 
             className="text-center mb-16"
@@ -292,7 +318,7 @@ export default function Welcome() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 px-4 sm:px-6">
+      <section id="stats" className="py-20 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             {stats.map((stat, i) => (
@@ -315,7 +341,7 @@ export default function Welcome() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 sm:py-32 px-4 sm:px-6">
+      <section id="cta" className="py-20 sm:py-32 px-4 sm:px-6">
         <motion.div 
           className="max-w-3xl mx-auto text-center"
           initial={{ opacity: 0, y: 40 }}
@@ -361,23 +387,41 @@ export default function Welcome() {
             </p>
           </motion.div>
           
+          {/* Professional Developer Credits Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            className="bg-gradient-to-r from-yellow-500/10 via-purple-500/10 to-pink-500/10 rounded-3xl p-8 sm:p-10 border border-white/10 backdrop-blur-sm"
+            className="relative group"
           >
-            <p className="text-white/60 text-sm mb-2">Created with ❤️ by</p>
-            <h3 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-yellow-400 to-purple-500 bg-clip-text text-transparent mb-3">
-              HIRAL GOYAL
-            </h3>
-            <p className="text-white/70 text-base sm:text-lg mb-1">
-              Mathematics and Computing
-            </p>
-            <p className="text-white/50 text-sm">
-              Madhav Institute of Technology and Science, Gwalior
-            </p>
+            {/* Gradient border effect */}
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-400 via-purple-500 to-pink-500 rounded-2xl opacity-30 group-hover:opacity-50 blur transition-opacity" />
+            
+            <div className="relative bg-[#0a0f1a] rounded-2xl p-8 sm:p-10 border border-white/10">
+              {/* Developer badge */}
+              <div className="flex items-center justify-center gap-2 mb-6">
+                <Code2 className="w-5 h-5 text-yellow-400" />
+                <span className="text-xs font-semibold tracking-[0.2em] text-white/60 uppercase">Developer</span>
+              </div>
+              
+              {/* Name */}
+              <h3 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-yellow-400 to-purple-500 bg-clip-text text-transparent mb-6">
+                HIRAL GOYAL
+              </h3>
+              
+              {/* Details */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-center gap-2 text-white/70">
+                  <GraduationCap className="w-4 h-4 text-purple-400" />
+                  <span className="text-sm sm:text-base">Mathematics and Computing</span>
+                </div>
+                <div className="flex items-center justify-center gap-2 text-white/50">
+                  <MapPin className="w-4 h-4 text-pink-400" />
+                  <span className="text-xs sm:text-sm">Madhav Institute of Technology and Science, Gwalior</span>
+                </div>
+              </div>
+            </div>
           </motion.div>
           
           <p className="mt-10 text-white/30 text-xs">

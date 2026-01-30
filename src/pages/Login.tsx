@@ -89,16 +89,20 @@ export default function Login() {
     }
 
     setIsLoading(true);
+    // Reset nickname availability when submitting to prevent stale green indicator
+    setNicknameAvailable(null);
 
     try {
       const result = await login(role, campusCode, adminEmail, adminPassword, role === 'student' ? nickname : undefined);
 
-     if (result.success) {
-  toast.success(role === 'student' ? 'Welcome to CampusVoice!' : 'Admin access granted');
-  // ❗ Do NOT navigate here
-  // Redirect will happen in useEffect after auth state is ready
-}
- else {
+      if (result.success) {
+        toast.success(role === 'student' ? 'Welcome to CampusVoice!' : 'Admin access granted');
+        // Redirect will happen in useEffect after auth state is ready
+      } else {
+        // If login failed due to username taken, update the UI
+        if (result.error?.includes('username') || result.error?.includes('taken')) {
+          setNicknameAvailable(false);
+        }
         toast.error(result.error || 'Login failed');
       }
     } catch (error: any) {

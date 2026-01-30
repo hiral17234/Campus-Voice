@@ -288,37 +288,38 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-lg border-b border-border">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl overflow-hidden">
-                <img src={campusVoiceLogo} alt="CampusVoice" className="w-full h-full object-contain p-1" />
+        <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl overflow-hidden flex-shrink-0">
+                <img src={campusVoiceLogo} alt="CampusVoice" className="w-full h-full object-contain p-0.5 sm:p-1" />
               </div>
-              <div>
-                <h1 className="text-lg font-bold">Faculty Dashboard</h1>
-                <p className="text-xs text-muted-foreground">CampusVoice Management</p>
+              <div className="min-w-0">
+                <h1 className="text-sm sm:text-lg font-bold truncate">Faculty Dashboard</h1>
+                <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">CampusVoice Management</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <Button
                 variant="default"
                 size="sm"
                 onClick={() => navigate('/create')}
-                className="gap-2"
+                className="gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm"
               >
-                <Plus className="h-4 w-4" />
-                Post Official Issue
+                <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Post Official Issue</span>
+                <span className="sm:hidden">Post</span>
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/notifications')}
-                className="relative"
+                className="relative h-8 w-8 sm:h-9 sm:w-9 p-0"
               >
                 <Bell className="h-4 w-4" />
                 {unreadNotifications > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
                     {unreadNotifications}
                   </span>
                 )}
@@ -328,12 +329,12 @@ export default function AdminDashboard() {
                 variant="secondary"
                 size="sm"
                 onClick={() => navigate('/profile')}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full"
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full"
               >
                 <Users className="h-4 w-4" />
                 <span className="text-sm font-medium">{user?.nickname || 'Admin'}</span>
               </Button>
-              <Button variant="ghost" size="icon" onClick={handleLogout}>
+              <Button variant="ghost" size="icon" onClick={handleLogout} className="h-8 w-8 sm:h-9 sm:w-9">
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
@@ -398,44 +399,50 @@ export default function AdminDashboard() {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-4">
-            <TabsTrigger value="all">All Issues</TabsTrigger>
-            <TabsTrigger value="reported" className="relative">
-              Reported
-              {reportedIssues.length > 0 && (
-                <Badge variant="destructive" className="ml-2 h-5 px-1.5">
-                  {reportedIssues.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="deleted" className="relative">
-              <Trash2 className="h-4 w-4 mr-1" />
-              Deleted
-              {deletedIssues.length > 0 && (
-                <Badge variant="secondary" className="ml-2 h-5 px-1.5">
-                  {deletedIssues.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="falsely_accused" className="relative">
-              <Shield className="h-4 w-4 mr-1 text-green-500" />
-              Falsely Accused
-              {falselyAccusedIssues.length > 0 && (
-                <Badge className="ml-2 h-5 px-1.5 bg-green-500/20 text-green-600 dark:text-green-400">
-                  {falselyAccusedIssues.length}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="appeals" className="relative">
-              <Gavel className="h-4 w-4 mr-1" />
-              Appeals
-              {appeals.filter(a => a.status === 'pending').length > 0 && (
-                <Badge variant="outline" className="ml-2 h-5 px-1.5">
-                  {appeals.filter(a => a.status === 'pending').length}
-                </Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <TabsList className="mb-4 flex-wrap h-auto gap-1 p-1 min-w-max">
+              <TabsTrigger value="all" className="text-xs sm:text-sm px-2 sm:px-3">All</TabsTrigger>
+              <TabsTrigger value="reported" className="relative text-xs sm:text-sm px-2 sm:px-3">
+                <span className="hidden sm:inline">Reported</span>
+                <span className="sm:hidden">Rep.</span>
+                {reportedIssues.length > 0 && (
+                  <Badge variant="destructive" className="ml-1 sm:ml-2 h-4 sm:h-5 px-1 sm:px-1.5 text-[10px] sm:text-xs">
+                    {reportedIssues.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="deleted" className="relative text-xs sm:text-sm px-2 sm:px-3">
+                <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" />
+                <span className="hidden sm:inline">Deleted</span>
+                <span className="sm:hidden">Del.</span>
+                {deletedIssues.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 sm:ml-2 h-4 sm:h-5 px-1 sm:px-1.5 text-[10px] sm:text-xs">
+                    {deletedIssues.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="falsely_accused" className="relative text-xs sm:text-sm px-2 sm:px-3">
+                <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-0.5 sm:mr-1 text-green-500" />
+                <span className="hidden sm:inline">Falsely Accused</span>
+                <span className="sm:hidden">False</span>
+                {falselyAccusedIssues.length > 0 && (
+                  <Badge className="ml-1 sm:ml-2 h-4 sm:h-5 px-1 sm:px-1.5 text-[10px] sm:text-xs bg-green-500/20 text-green-600 dark:text-green-400">
+                    {falselyAccusedIssues.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="appeals" className="relative text-xs sm:text-sm px-2 sm:px-3">
+                <Gavel className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" />
+                <span className="hidden sm:inline">Appeals</span>
+                <span className="sm:hidden">App.</span>
+                {appeals.filter(a => a.status === 'pending').length > 0 && (
+                  <Badge variant="outline" className="ml-1 sm:ml-2 h-4 sm:h-5 px-1 sm:px-1.5 text-[10px] sm:text-xs">
+                    {appeals.filter(a => a.status === 'pending').length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value={activeTab}>
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

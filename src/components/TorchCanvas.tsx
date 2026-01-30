@@ -10,8 +10,8 @@ type TorchProps = {
 export function TorchCanvas({ active, x, y, followCursor }: TorchProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mouse = useRef({ x, y });
-  const lastPos = useRef({ x, y });
-    const lastAngle = useRef(0);
+  const lastPos = useRef({ x, y, prevX: x, prevY: y });
+  const lastAngle = useRef(0);
 
 
 
@@ -56,7 +56,7 @@ if (!canvasRef.current) return;
       mouse.current.y = window.innerHeight / 2;
     }
 
-    lastPos.current = { x: mouse.current.x, y: mouse.current.y };
+    lastPos.current = { x: mouse.current.x, y: mouse.current.y, prevX: mouse.current.x, prevY: mouse.current.y };
 
 
     const dust = Array.from({ length: 120 }).map(() => ({

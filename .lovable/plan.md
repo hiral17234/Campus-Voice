@@ -1,109 +1,87 @@
 
+# Mobile-Friendly Admin Dashboard Issues View
 
-# Welcome Page Improvements
+## Problem
+The Faculty Dashboard's issues table requires horizontal scrolling on mobile to see category, status, priority, votes, and action buttons. This creates a poor user experience on phones.
 
-## Issues to Fix
-
-### 1. Hero Section Text
-**Current**: "Your Voice, Protected"  
-**Fix**: Change to "Your Voice, CampusVoice" - using the website name instead of "Protected"
-
-### 2. Tagline Completion
-**Current**: The tagline "Where scattered whispers become a powerful roar" is already complete in the hero section (line 117). However, in the Solution section (lines 217-221), it's split across two AnimatedText components.  
-**Fix**: Ensure both instances display the complete phrase clearly
-
-### 3. Professional Creator Credits
-**Current**: "Created with love by" - too casual  
-**Fix**: Replace with a professional developer credit card:
-- Title: "Developer"
-- Name: HIRAL GOYAL
-- Role: Mathematics and Computing
-- Institution: Madhav Institute of Technology and Science, Gwalior
-- Add subtle professional styling with icons
-
-### 4. Sticky Navigation Bar
-**New Feature**: Add a semi-transparent navigation bar at the top that:
-- Appears after initial scroll
-- Contains links to each section
-- Uses smooth scroll animation when clicked
-- Highlights the current active section
-- Has a glass-morphism (backdrop blur) effect
-
-### 5. issues raised should be 15+ and if possible make it dynamic like real data and at the starting where our logo is being represented make it animated and glowy
+## Solution
+Create a responsive layout that shows:
+- **Desktop (md and above)**: Keep the current table layout
+- **Mobile (below md)**: Show compact issue cards that expand on tap to reveal all details
 
 ## Implementation Details
 
-### New Navigation Component
-Create a floating navigation bar with these sections:
-- Home (Hero)
-- Problem
-- Solution
-- How It Works
-- Stats
-- Get Started
+### New Component: `AdminIssueCard.tsx`
+A mobile-optimized card component specifically for the admin dashboard that:
 
-Each nav item will:
-- Use `scrollIntoView` with smooth behavior
-- Have hover animations
-- Show active state based on scroll position
+**Collapsed State (default):**
+- Issue title with status indicator icon
+- Location and time (compact)
+- Vote counts inline
+- Visual indicators for reported/official/falsely accused
 
-### Section IDs
-Add unique IDs to each section for scroll targeting:
-- `id="hero"`
-- `id="problem"`
-- `id="solution"`
-- `id="how-it-works"`
-- `id="stats"`
-- `id="cta"`
+**Expanded State (on tap):**
+- Full badges row: Category, Status, Priority
+- Department assignment dropdown
+- Report count (if applicable)
+- Action buttons: View, Change Status, Restore/Verify
+
+###Also fix the things of falsely accoused and appeals like how they should work in real 
+
+### Visual Layout
+
+**Collapsed Card:**
+```text
++------------------------------------------+
+| [Flag] Issue Title Here...        ↑5 ↓2  |
+| 📍 Library · 2 hours ago                 |
++------------------------------------------+
+```
+
+**Expanded Card (after tap):**
+```text
++------------------------------------------+
+| [Flag] Issue Title Here...        ↑5 ↓2  |
+| 📍 Library · 2 hours ago                 |
+|------------------------------------------|
+| [Infrastructure] [Pending] [High]        |
+|                                          |
+| Department: [Select dropdown      ▼]     |
+| Reports: 5 reports                       |
+|                                          |
+| [👁 View]  [↻ Status]  [✓ Verify]       |
++------------------------------------------+
+```
 
 ### Files to Modify
 
-**src/pages/Welcome.tsx**
-- Add section IDs to each major section
-- Update hero text from "Protected" to "CampusVoice"
-- Redesign footer credits to be professional
-- Add new FloatingNav component inline or as import
+**1. Create `src/components/AdminIssueCard.tsx`**
+- New component for mobile issue display
+- Uses Framer Motion for smooth expand/collapse animation
+- Includes all admin actions (status change, priority, department)
+- Shows different action buttons based on tab (all/reported/deleted/falsely_accused)
 
-**src/components/welcome/FloatingNav.tsx** (new file)
-- Semi-transparent sticky navigation
-- Scroll-triggered visibility (appears after scrolling past hero)
-- Active section highlighting using Intersection Observer
-- Smooth scroll on click with Framer Motion animations
-
-### Visual Design
-
-Navigation Bar:
-```text
-+------------------------------------------------------------------+
-|  [logo] Home  Problem  Solution  How It Works  Stats  [Get Started]  |
-+------------------------------------------------------------------+
-```
-
-- Background: `bg-black/40 backdrop-blur-lg`
-- Border: `border-b border-white/10`
-- Position: Fixed top, hidden initially, slides down on scroll
-- Active link: Yellow/purple gradient underline
-
-Professional Credits Card:
-```text
-+------------------------------------------------+
-|           DEVELOPER                            |
-|                                                |
-|        [Code Icon]  HIRAL GOYAL                |
-|                                                |
-|   Mathematics and Computing                    |
-|   Madhav Institute of Technology and Science   |
-|   Gwalior                                      |
-+------------------------------------------------+
-```
+**2. Update `src/pages/AdminDashboard.tsx`**
+- Import `useIsMobile` hook
+- Import new `AdminIssueCard` component
+- Conditionally render:
+  - Table layout when `!isMobile`
+  - Card list when `isMobile`
+- Keep all existing functionality and filters working
 
 ### Animation Behavior
+- **Expand**: 300ms ease-out, height auto-animate
+- **Chevron icon**: Rotates 180 degrees when expanded
+- **Staggered entry**: Cards animate in sequence on initial load
 
-1. **Nav appears**: Fade + slide down after scrolling 100vh
-2. **Nav link click**: 
-   - Smooth scroll to section
-   - Active state updates instantly
-3. **Active section tracking**: 
-   - Uses Intersection Observer to detect which section is in view
-   - Updates nav highlight accordingly
+### Mobile-Specific Features
+- Larger touch targets for action buttons (min 44px)
+- Full-width dropdowns for priority/department selection
+- Swipe-friendly card spacing
+- Sticky header remains for filters access
 
+### Technical Notes
+- Use `AnimatePresence` for smooth enter/exit of expanded content
+- Use `motion.div` with `layout` prop for height animation
+- Reuse existing badge components (StatusBadge, CategoryBadge, PriorityBadge)
+- All existing handlers work unchanged (handlePriorityChange, handleDepartmentAssign, etc.)

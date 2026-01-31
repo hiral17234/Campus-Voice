@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useIssues } from '@/context/IssuesContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { StatusBadge } from '@/components/StatusBadge';
 import { CategoryBadge } from '@/components/CategoryBadge';
 import { PriorityBadge } from '@/components/PriorityBadge';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { StatusChangeModal } from '@/components/StatusChangeModal';
+import { AdminIssueCard } from '@/components/AdminIssueCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,6 +55,7 @@ export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const { issues, stats, updateStatus, addComment, setIssuePriority, assignDepartment, notifications, restoreIssue, markAsFalselyAccused } = useIssues();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -512,155 +515,184 @@ export default function AdminDashboard() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Issue</TableHead>
-                            <TableHead>Category</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Priority</TableHead>
-                            {activeTab === 'reported' && <TableHead>Reports</TableHead>}
-                            <TableHead>Votes</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredIssues.length === 0 ? (
+                    {/* Mobile: Card View */}
+                    {isMobile ? (
+                      <div className="space-y-3">
+                        {filteredIssues.length === 0 ? (
+                          <div className="text-center py-8 text-muted-foreground">
+                            No issues found
+                          </div>
+                        ) : (
+                          filteredIssues.map((issue, index) => (
+                            <AdminIssueCard
+                              key={issue.id}
+                              issue={issue}
+                              activeTab={activeTab as 'all' | 'reported' | 'deleted' | 'falsely_accused'}
+                              onStatusChange={(issue) => {
+                                setSelectedIssue(issue);
+                                setShowStatusModal(true);
+                              }}
+                              onPriorityChange={handlePriorityChange}
+                              onDepartmentAssign={handleDepartmentAssign}
+                              onRestore={handleRestoreIssue}
+                              onMarkFalselyAccused={handleMarkFalselyAccused}
+                              index={index}
+                            />
+                          ))
+                        )}
+                      </div>
+                    ) : (
+                      /* Desktop: Table View */
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
                             <TableRow>
-                              <TableCell colSpan={activeTab === 'reported' ? 7 : 6} className="text-center py-8 text-muted-foreground">
-                                No issues found
-                              </TableCell>
+                              <TableHead>Issue</TableHead>
+                              <TableHead>Category</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Priority</TableHead>
+                              {activeTab === 'reported' && <TableHead>Reports</TableHead>}
+                              <TableHead>Votes</TableHead>
+                              <TableHead>Actions</TableHead>
                             </TableRow>
-                          ) : (
-                            filteredIssues.map((issue) => (
-                              <TableRow key={issue.id} className={issue.isFalselyAccused ? 'bg-green-500/10 border-l-4 border-green-500' : issue.isReported ? 'bg-red-500/5' : issue.isOfficial ? 'bg-primary/5' : ''}>
-                                <TableCell>
-                                  <div className="max-w-[180px]">
-                                    <div className="flex items-center gap-2">
-                                      {issue.isFalselyAccused && <Shield className="h-3 w-3 text-green-500 flex-shrink-0" />}
-                                      {issue.isReported && !issue.isFalselyAccused && <Flag className="h-3 w-3 text-red-500 flex-shrink-0" />}
-                                      {issue.isOfficial && <Shield className="h-3 w-3 text-primary flex-shrink-0" />}
-                                      <p className="font-medium truncate">{issue.title}</p>
-                                    </div>
-                                    {issue.isFalselyAccused && (
-                                      <Badge className="text-xs mt-1 bg-green-500/20 text-green-600 dark:text-green-400">
-                                        Verified True
-                                      </Badge>
-                                    )}
-                                    {issue.isOfficial && !issue.isFalselyAccused && (
-                                      <Badge variant="default" className="text-xs mt-1">
-                                        Official
-                                      </Badge>
-                                    )}
-                                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                      <MapPin className="h-3 w-3" />
-                                      {issue.location}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {formatDistanceToNow(issue.createdAt, { addSuffix: true })}
-                                    </p>
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <CategoryBadge category={issue.category} />
-                                </TableCell>
-                                <TableCell>
-                                  <StatusBadge status={issue.status} />
-                                </TableCell>
-                                <TableCell>
-                                  {activeTab !== 'deleted' ? (
-                                    <Select 
-                                      value={issue.priority || ''} 
-                                      onValueChange={(v) => handlePriorityChange(issue.id, v as IssuePriority)}
-                                    >
-                                      <SelectTrigger className="w-24 h-8 text-xs">
-                                        <SelectValue placeholder="Set" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {Object.entries(PRIORITY_LABELS).map(([key, label]) => (
-                                          <SelectItem key={key} value={key}>{label}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  ) : (
-                                    issue.priority && <PriorityBadge priority={issue.priority} />
-                                  )}
-                                </TableCell>
-                                {activeTab === 'reported' && (
-                                  <TableCell>
-                                    <Badge variant="destructive" className="text-xs">
-                                      {issue.reportCount} reports
-                                    </Badge>
-                                  </TableCell>
-                                )}
-                                <TableCell>
-                                  <div className="flex items-center gap-1 text-sm">
-                                    <span className="text-green-500">↑{issue.upvotes}</span>
-                                    <span className="text-red-500">↓{issue.downvotes}</span>
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex gap-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => navigate(`/issue/${issue.id}`)}
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
-                                    {activeTab === 'deleted' ? (
-                                      <>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => handleRestoreIssue(issue.id)}
-                                          className="text-muted-foreground hover:text-foreground"
-                                          title="Restore (rightly reported - keep in deleted later)"
-                                        >
-                                          <RotateCcw className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => handleMarkFalselyAccused(issue.id)}
-                                          className="text-green-500 hover:text-green-600"
-                                          title="Mark as Falsely Accused (restore with verification)"
-                                        >
-                                          <CheckCircle className="h-4 w-4" />
-                                        </Button>
-                                      </>
-                                    ) : activeTab === 'falsely_accused' ? (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                          setSelectedIssue(issue);
-                                          setShowStatusModal(true);
-                                        }}
-                                      >
-                                        <RefreshCw className="h-4 w-4" />
-                                      </Button>
-                                    ) : (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                          setSelectedIssue(issue);
-                                          setShowStatusModal(true);
-                                        }}
-                                      >
-                                        <RefreshCw className="h-4 w-4" />
-                                      </Button>
-                                    )}
-                                  </div>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredIssues.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={activeTab === 'reported' ? 7 : 6} className="text-center py-8 text-muted-foreground">
+                                  No issues found
                                 </TableCell>
                               </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
+                            ) : (
+                              filteredIssues.map((issue) => (
+                                <TableRow key={issue.id} className={issue.isFalselyAccused ? 'bg-green-500/10 border-l-4 border-green-500' : issue.isReported ? 'bg-red-500/5' : issue.isOfficial ? 'bg-primary/5' : ''}>
+                                  <TableCell>
+                                    <div className="max-w-[180px]">
+                                      <div className="flex items-center gap-2">
+                                        {issue.isFalselyAccused && <Shield className="h-3 w-3 text-green-500 flex-shrink-0" />}
+                                        {issue.isReported && !issue.isFalselyAccused && <Flag className="h-3 w-3 text-red-500 flex-shrink-0" />}
+                                        {issue.isOfficial && <Shield className="h-3 w-3 text-primary flex-shrink-0" />}
+                                        <p className="font-medium truncate">{issue.title}</p>
+                                      </div>
+                                      {issue.isFalselyAccused && (
+                                        <Badge className="text-xs mt-1 bg-green-500/20 text-green-600 dark:text-green-400">
+                                          Verified True
+                                        </Badge>
+                                      )}
+                                      {issue.isOfficial && !issue.isFalselyAccused && (
+                                        <Badge variant="default" className="text-xs mt-1">
+                                          Official
+                                        </Badge>
+                                      )}
+                                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                        <MapPin className="h-3 w-3" />
+                                        {issue.location}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {formatDistanceToNow(issue.createdAt, { addSuffix: true })}
+                                      </p>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <CategoryBadge category={issue.category} />
+                                  </TableCell>
+                                  <TableCell>
+                                    <StatusBadge status={issue.status} />
+                                  </TableCell>
+                                  <TableCell>
+                                    {activeTab !== 'deleted' ? (
+                                      <Select 
+                                        value={issue.priority || ''} 
+                                        onValueChange={(v) => handlePriorityChange(issue.id, v as IssuePriority)}
+                                      >
+                                        <SelectTrigger className="w-24 h-8 text-xs">
+                                          <SelectValue placeholder="Set" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {Object.entries(PRIORITY_LABELS).map(([key, label]) => (
+                                            <SelectItem key={key} value={key}>{label}</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    ) : (
+                                      issue.priority && <PriorityBadge priority={issue.priority} />
+                                    )}
+                                  </TableCell>
+                                  {activeTab === 'reported' && (
+                                    <TableCell>
+                                      <Badge variant="destructive" className="text-xs">
+                                        {issue.reportCount} reports
+                                      </Badge>
+                                    </TableCell>
+                                  )}
+                                  <TableCell>
+                                    <div className="flex items-center gap-1 text-sm">
+                                      <span className="text-green-500">↑{issue.upvotes}</span>
+                                      <span className="text-red-500">↓{issue.downvotes}</span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex gap-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => navigate(`/issue/${issue.id}`)}
+                                      >
+                                        <Eye className="h-4 w-4" />
+                                      </Button>
+                                      {activeTab === 'deleted' ? (
+                                        <>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleRestoreIssue(issue.id)}
+                                            className="text-muted-foreground hover:text-foreground"
+                                            title="Restore (rightly reported - keep in deleted later)"
+                                          >
+                                            <RotateCcw className="h-4 w-4" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleMarkFalselyAccused(issue.id)}
+                                            className="text-green-500 hover:text-green-600"
+                                            title="Mark as Falsely Accused (restore with verification)"
+                                          >
+                                            <CheckCircle className="h-4 w-4" />
+                                          </Button>
+                                        </>
+                                      ) : activeTab === 'falsely_accused' ? (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => {
+                                            setSelectedIssue(issue);
+                                            setShowStatusModal(true);
+                                          }}
+                                        >
+                                          <RefreshCw className="h-4 w-4" />
+                                        </Button>
+                                      ) : (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => {
+                                            setSelectedIssue(issue);
+                                            setShowStatusModal(true);
+                                          }}
+                                        >
+                                          <RefreshCw className="h-4 w-4" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>

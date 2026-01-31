@@ -107,6 +107,11 @@ export default function Login() {
       }
     } catch (error: any) {
       console.error('Login error:', error);
+      // If error is due to username taken, update the UI
+      const errorMsg = error.message || '';
+      if (errorMsg.includes('username') || errorMsg.includes('taken')) {
+        setNicknameAvailable(false);
+      }
       toast.error(error.message || 'Login failed. Please try again.');
     } finally {
       setIsLoading(false);

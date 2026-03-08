@@ -585,7 +585,7 @@ export default function AdminDashboard() {
                                 ))}
                               </SelectContent>
                             </Select>
-                            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                            <Select value={categoryFilter} onValueChange={handleCategoryFilterChange}>
                               <SelectTrigger className={isMobile ? 'w-full' : 'w-32'}>
                                 <SelectValue placeholder="Category" />
                               </SelectTrigger>

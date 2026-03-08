@@ -139,7 +139,12 @@
 
 @layer utilities {
   .glass-card {
-    @apply bg-card/80 backdrop-blur-sm border border-border/50 shadow-lg;
+    @apply bg-card/80 backdrop-blur-md border border-border/60 shadow-lg;
+    box-shadow: 0 4px 24px -4px hsl(40 20% 70% / 0.15), 0 1px 3px hsl(40 20% 70% / 0.1);
+  }
+
+  .dark .glass-card {
+    box-shadow: 0 4px 24px -4px hsl(0 0% 0% / 0.3);
   }
   
   .gradient-primary {

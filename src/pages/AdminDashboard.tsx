@@ -607,7 +607,7 @@ export default function AdminDashboard() {
                                 ))}
                               </SelectContent>
                             </Select>
-                            <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+                            <Select value={sortBy} onValueChange={(v) => handleSortChange(v as typeof sortBy)}>
                               <SelectTrigger className={isMobile ? 'w-full' : 'w-32'}>
                                 <ArrowUpDown className="h-4 w-4 mr-2" />
                                 <SelectValue />

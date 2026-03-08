@@ -218,8 +218,6 @@ export default function Login() {
                           <div className="absolute right-3 top-1/2 -translate-y-1/2">
                             {isCheckingNickname ? (
                               <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
-                            ) : nicknameAvailable === true ? (
-                              <Check className="h-4 w-4 text-green-500" />
                             ) : nicknameAvailable === false ? (
                               <X className="h-4 w-4 text-destructive" />
                             ) : null}

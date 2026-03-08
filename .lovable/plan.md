@@ -1,87 +1,30 @@
 
-# Mobile-Friendly Admin Dashboard Issues View
 
-## Problem
-The Faculty Dashboard's issues table requires horizontal scrolling on mobile to see category, status, priority, votes, and action buttons. This creates a poor user experience on phones.
+## Plan: Mobile-Optimized Student Feed Layout
 
-## Solution
-Create a responsive layout that shows:
-- **Desktop (md and above)**: Keep the current table layout
-- **Mobile (below md)**: Show compact issue cards that expand on tap to reveal all details
+### Problem
+On mobile, the sidebar (Quick Stats, Report Issue button, Campus Apps) renders above the main feed, pushing content far down. The header also has too many visible items, making it cluttered.
 
-## Implementation Details
+### Changes
 
-### New Component: `AdminIssueCard.tsx`
-A mobile-optimized card component specifically for the admin dashboard that:
+**1. Collapse sidebar into a hamburger/drawer on mobile (`src/pages/StudentFeed.tsx`)**
+- Add a hamburger menu button (visible only on `lg:hidden`) in the header, next to the logo
+- Use a `Sheet` (side drawer) component to house the sidebar content (Quick Stats, Report Issue, Campus Apps) on mobile
+- Hide the `<aside>` on mobile (`hidden lg:block`) since it will live in the drawer instead
+- The Stats button already hidden on mobile (`hidden sm:flex`) — move it into the drawer too
 
-**Collapsed State (default):**
-- Issue title with status indicator icon
-- Location and time (compact)
-- Vote counts inline
-- Visual indicators for reported/official/falsely accused
+**2. Header cleanup on mobile**
+- Replace the separate Stats button with the hamburger menu button on mobile
+- Keep: logo, notification bell, theme toggle, user chip, logout — these are compact enough
+- The hamburger opens a left-side Sheet containing: Quick Stats, Report Issue button, Campus Apps
 
-**Expanded State (on tap):**
-- Full badges row: Category, Status, Priority
-- Department assignment dropdown
-- Report count (if applicable)
-- Action buttons: View, Change Status, Restore/Verify
+**3. Ensure "Report Issue" remains accessible**
+- Add the Report Issue button inside the mobile drawer
+- Optionally add a floating action button (FAB) on mobile for quick access
 
-###Also fix the things of falsely accoused and appeals like how they should work in real 
+### Technical Details
+- Import `Sheet, SheetContent, SheetTrigger` from `@/components/ui/sheet`
+- Add `Menu` icon from lucide-react for the hamburger
+- Add state `sidebarOpen` to control the sheet
+- Extract sidebar content into a reusable fragment rendered both in the Sheet (mobile) and inline aside (desktop)
 
-### Visual Layout
-
-**Collapsed Card:**
-```text
-+------------------------------------------+
-| [Flag] Issue Title Here...        ↑5 ↓2  |
-| 📍 Library · 2 hours ago                 |
-+------------------------------------------+
-```
-
-**Expanded Card (after tap):**
-```text
-+------------------------------------------+
-| [Flag] Issue Title Here...        ↑5 ↓2  |
-| 📍 Library · 2 hours ago                 |
-|------------------------------------------|
-| [Infrastructure] [Pending] [High]        |
-|                                          |
-| Department: [Select dropdown      ▼]     |
-| Reports: 5 reports                       |
-|                                          |
-| [👁 View]  [↻ Status]  [✓ Verify]       |
-+------------------------------------------+
-```
-
-### Files to Modify
-
-**1. Create `src/components/AdminIssueCard.tsx`**
-- New component for mobile issue display
-- Uses Framer Motion for smooth expand/collapse animation
-- Includes all admin actions (status change, priority, department)
-- Shows different action buttons based on tab (all/reported/deleted/falsely_accused)
-
-**2. Update `src/pages/AdminDashboard.tsx`**
-- Import `useIsMobile` hook
-- Import new `AdminIssueCard` component
-- Conditionally render:
-  - Table layout when `!isMobile`
-  - Card list when `isMobile`
-- Keep all existing functionality and filters working
-
-### Animation Behavior
-- **Expand**: 300ms ease-out, height auto-animate
-- **Chevron icon**: Rotates 180 degrees when expanded
-- **Staggered entry**: Cards animate in sequence on initial load
-
-### Mobile-Specific Features
-- Larger touch targets for action buttons (min 44px)
-- Full-width dropdowns for priority/department selection
-- Swipe-friendly card spacing
-- Sticky header remains for filters access
-
-### Technical Notes
-- Use `AnimatePresence` for smooth enter/exit of expanded content
-- Use `motion.div` with `layout` prop for height animation
-- Reuse existing badge components (StatusBadge, CategoryBadge, PriorityBadge)
-- All existing handlers work unchanged (handlePriorityChange, handleDepartmentAssign, etc.)

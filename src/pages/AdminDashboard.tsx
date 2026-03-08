@@ -675,7 +675,7 @@ export default function AdminDashboard() {
                                 </TableCell>
                               </TableRow>
                             ) : (
-                              filteredIssues.map((issue) => (
+                              paginatedIssues.map((issue) => (
                                 <TableRow key={issue.id} className={issue.isFalselyAccused ? 'bg-green-500/10 border-l-4 border-green-500' : issue.isReported ? 'bg-red-500/5' : issue.isOfficial ? 'bg-primary/5' : ''}>
                                   <TableCell>
                                     <div className="max-w-[180px]">

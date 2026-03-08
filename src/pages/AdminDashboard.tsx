@@ -56,7 +56,7 @@ import { AdminDashboardSkeleton } from '@/components/AdminDashboardSkeleton';
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
-  const { issues, stats, updateStatus, addComment, setIssuePriority, assignDepartment, notifications, restoreIssue, markAsFalselyAccused } = useIssues();
+  const { issues, stats, updateStatus, addComment, setIssuePriority, assignDepartment, notifications, restoreIssue, markAsFalselyAccused, isLoading } = useIssues();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState('');

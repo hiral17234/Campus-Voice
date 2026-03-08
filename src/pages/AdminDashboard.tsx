@@ -66,6 +66,7 @@ export default function AdminDashboard() {
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+  const [showFilters, setShowFilters] = useState(false);
   
   // Appeals state
   const [appeals, setAppeals] = useState<AccountAppeal[]>([]);

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { CATEGORY_LABELS, IssueCategory, IssueStatus, STATUS_LABELS } from '@/types';
 import { 
   Plus, 
@@ -31,6 +32,7 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
+  Menu,
 } from 'lucide-react';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 import { EmptyState } from '@/components/EmptyState';
@@ -111,7 +113,7 @@ export default function StudentFeed() {
   const [showLogoutWarning, setShowLogoutWarning] = useState(false);
   const [activeTab, setActiveTab] = useState('feed');
   const [currentPage, setCurrentPage] = useState(1);
-
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const unreadNotifications = notifications.filter(n => n.userId === user?.id && !n.isRead).length;
 
   // Reset page on filter/tab changes
@@ -216,6 +218,14 @@ export default function StudentFeed() {
         <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden h-8 w-8 sm:h-9 sm:w-9"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
               <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl overflow-hidden flex-shrink-0">
                 <img src={campusVoiceLogo} alt="CampusVoice" className="w-full h-full object-contain p-0.5 sm:p-1" />
               </div>
@@ -243,7 +253,7 @@ export default function StudentFeed() {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/stats')}
-                className="hidden sm:flex h-9"
+                className="hidden lg:flex h-9"
               >
                 <BarChart3 className="h-4 w-4 mr-1" />
                 Stats
@@ -275,8 +285,101 @@ export default function StudentFeed() {
 
       <main className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar */}
-          <aside className="lg:col-span-1 space-y-4">
+          {/* Mobile Sidebar Drawer */}
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <SheetContent side="left" className="w-[300px] overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle className="flex items-center gap-2">
+                  <img src={campusVoiceLogo} alt="CampusVoice" className="w-6 h-6 rounded" />
+                  CampusVoice
+                </SheetTitle>
+              </SheetHeader>
+              <div className="space-y-4 mt-4">
+                {/* Quick Stats */}
+                <Card className="glass-card">
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-primary" />
+                      Quick Stats
+                    </h3>
+                    <div className="space-y-2">
+                      {statCards.map((stat) => (
+                        <button
+                          key={stat.label}
+                          onClick={() => {
+                            handleTabChange('feed');
+                            handleStatusChange(stat.status);
+                            setSidebarOpen(false);
+                          }}
+                          className={`w-full flex justify-between items-center p-2 rounded-lg transition-all hover:bg-muted ${
+                            statusFilter === stat.status && activeTab === 'feed' ? 'bg-muted ring-2 ring-primary' : ''
+                          }`}
+                        >
+                          <span className="text-sm text-muted-foreground flex items-center gap-2">
+                            <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                            {stat.label}
+                          </span>
+                          <span className={`font-semibold ${stat.color}`}>{stat.value}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { navigate('/stats'); setSidebarOpen(false); }}
+                  className="w-full justify-start"
+                >
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Public Stats
+                </Button>
+
+                <Button 
+                  className="w-full gradient-primary" 
+                  onClick={() => { navigate('/create'); setSidebarOpen(false); }}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Report Issue
+                </Button>
+
+                {/* Campus Apps */}
+                <Card className="glass-card">
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      Campus Apps
+                    </h3>
+                    <div className="space-y-2">
+                      <Button variant="outline" className="w-full justify-start" disabled>
+                        <Zap className="h-4 w-4 mr-2 text-yellow-500" />
+                        CampusAssist
+                        <span className="ml-auto text-xs text-muted-foreground">Soon</span>
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-start" 
+                        onClick={() => window.open('https://notehall.vercel.app/', '_blank')}
+                      >
+                        <BookOpen className="h-4 w-4 mr-2 text-blue-500" />
+                        NoteHall
+                        <span className="ml-auto text-xs text-muted-foreground">Live</span>
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start" disabled>
+                        <Sparkles className="h-4 w-4 mr-2 text-purple-500" />
+                        CampusBuzz
+                        <span className="ml-auto text-xs text-muted-foreground">Soon</span>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          {/* Desktop Sidebar */}
+          <aside className="hidden lg:block lg:col-span-1 space-y-4">
             {/* Interactive Stats Cards */}
             <Card className="glass-card">
               <CardContent className="p-4">

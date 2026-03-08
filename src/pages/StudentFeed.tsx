@@ -28,13 +28,77 @@ import {
   Zap,
   Sparkles,
   Flag,
-  Shield
+  Shield,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 import { EmptyState } from '@/components/EmptyState';
 import { FeedSkeleton } from '@/components/FeedSkeleton';
 
 type SortOption = 'hot' | 'new';
+
+const ITEMS_PER_PAGE = 12;
+
+function PaginationControls({ currentPage, totalPages, onPageChange }: { currentPage: number; totalPages: number; onPageChange: (page: number) => void }) {
+  if (totalPages <= 1) return null;
+
+  const getPageNumbers = () => {
+    const pages: (number | 'ellipsis')[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push('ellipsis');
+      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+        pages.push(i);
+      }
+      if (currentPage < totalPages - 2) pages.push('ellipsis');
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
+  return (
+    <div className="flex items-center justify-center gap-1 mt-6">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="h-8 px-2 sm:px-3 gap-1"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        <span className="hidden sm:inline">Previous</span>
+      </Button>
+      {getPageNumbers().map((page, idx) =>
+        page === 'ellipsis' ? (
+          <span key={`e-${idx}`} className="px-2 text-muted-foreground">…</span>
+        ) : (
+          <Button
+            key={page}
+            variant={page === currentPage ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => onPageChange(page)}
+            className="h-8 w-8 p-0"
+          >
+            {page}
+          </Button>
+        )
+      )}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="h-8 px-2 sm:px-3 gap-1"
+      >
+        <span className="hidden sm:inline">Next</span>
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
 
 export default function StudentFeed() {
   const { user, logout } = useAuth();
@@ -46,8 +110,16 @@ export default function StudentFeed() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showLogoutWarning, setShowLogoutWarning] = useState(false);
   const [activeTab, setActiveTab] = useState('feed');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const unreadNotifications = notifications.filter(n => n.userId === user?.id && !n.isRead).length;
+
+  // Reset page on filter/tab changes
+  const handleTabChange = (tab: string) => { setActiveTab(tab); setCurrentPage(1); };
+  const handleCategoryChange = (v: string) => { setCategoryFilter(v); setCurrentPage(1); };
+  const handleStatusChange = (v: string) => { setStatusFilter(v); setCurrentPage(1); };
+  const handleSortChange = (v: SortOption) => { setSortBy(v); setCurrentPage(1); };
+  const handleSearchChange = (v: string) => { setSearchQuery(v); setCurrentPage(1); };
 
   // Get reported issues that the user has reported
   const userReportedIssues = useMemo(() => {
@@ -66,10 +138,8 @@ export default function StudentFeed() {
   }, [issues]);
 
   const filteredAndSortedIssues = useMemo(() => {
-    // Only show non-reported, non-deleted issues in main feed
     let filtered = issues.filter(i => !i.isReported && !i.isDeleted);
 
-    // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -80,44 +150,44 @@ export default function StudentFeed() {
       );
     }
 
-    // Category filter
     if (categoryFilter !== 'all') {
       filtered = filtered.filter((issue) => issue.category === categoryFilter);
     }
 
-    // Status filter
     if (statusFilter !== 'all') {
       filtered = filtered.filter((issue) => issue.status === statusFilter);
     }
 
-    // Sort with official posts (< 24h old) at top
     const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
     
     if (sortBy === 'hot') {
       return [...filtered].sort((a, b) => {
-        // Official posts from last 24h always on top
         const aIsRecentOfficial = a.isOfficial && a.createdAt.getTime() > twentyFourHoursAgo;
         const bIsRecentOfficial = b.isOfficial && b.createdAt.getTime() > twentyFourHoursAgo;
-        
         if (aIsRecentOfficial && !bIsRecentOfficial) return -1;
         if (!aIsRecentOfficial && bIsRecentOfficial) return 1;
-        
         const scoreA = (a.upvotes - a.downvotes) / Math.pow((Date.now() - a.createdAt.getTime()) / 3600000 + 2, 1.5);
         const scoreB = (b.upvotes - b.downvotes) / Math.pow((Date.now() - b.createdAt.getTime()) / 3600000 + 2, 1.5);
         return scoreB - scoreA;
       });
     }
     return [...filtered].sort((a, b) => {
-      // Official posts from last 24h always on top
       const aIsRecentOfficial = a.isOfficial && a.createdAt.getTime() > twentyFourHoursAgo;
       const bIsRecentOfficial = b.isOfficial && b.createdAt.getTime() > twentyFourHoursAgo;
-      
       if (aIsRecentOfficial && !bIsRecentOfficial) return -1;
       if (!aIsRecentOfficial && bIsRecentOfficial) return 1;
-      
       return b.createdAt.getTime() - a.createdAt.getTime();
     });
   }, [issues, sortBy, categoryFilter, statusFilter, searchQuery]);
+
+  // Paginate each list
+  const feedTotalPages = Math.max(1, Math.ceil(filteredAndSortedIssues.length / ITEMS_PER_PAGE));
+  const officialTotalPages = Math.max(1, Math.ceil(officialIssues.length / ITEMS_PER_PAGE));
+  const reportedTotalPages = Math.max(1, Math.ceil(allReportedIssues.length / ITEMS_PER_PAGE));
+
+  const paginatedFeed = filteredAndSortedIssues.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const paginatedOfficial = officialIssues.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const paginatedReported = allReportedIssues.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const handleLogoutClick = () => {
     if (user?.role === 'student') {
@@ -219,8 +289,8 @@ export default function StudentFeed() {
                     <button
                       key={stat.label}
                       onClick={() => {
-                        setActiveTab('feed');
-                        setStatusFilter(stat.status);
+                        handleTabChange('feed');
+                        handleStatusChange(stat.status);
                       }}
                       className={`w-full flex justify-between items-center p-2 rounded-lg transition-all hover:bg-muted ${
                         statusFilter === stat.status && activeTab === 'feed' ? 'bg-muted ring-2 ring-primary' : ''
@@ -280,7 +350,7 @@ export default function StudentFeed() {
           {/* Main Feed */}
           <div className="lg:col-span-3 space-y-4">
             {/* Tabs for Feed and Reported */}
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs value={activeTab} onValueChange={handleTabChange}>
               <TabsList className="mb-4 flex-wrap h-auto gap-1 p-1">
                 <TabsTrigger value="feed" className="text-xs sm:text-sm px-2 sm:px-3">All Issues</TabsTrigger>
                 <TabsTrigger value="official" className="relative text-xs sm:text-sm px-2 sm:px-3">
@@ -315,12 +385,12 @@ export default function StudentFeed() {
                         <Input
                           placeholder="Search issues..."
                           value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
+                          onChange={(e) => handleSearchChange(e.target.value)}
                           className="pl-10"
                         />
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                        <Select value={categoryFilter} onValueChange={handleCategoryChange}>
                           <SelectTrigger className="w-full xs:w-auto xs:min-w-[120px] sm:w-36 text-xs sm:text-sm h-9">
                             <SelectValue placeholder="Category" />
                           </SelectTrigger>
@@ -333,7 +403,7 @@ export default function StudentFeed() {
                             ))}
                           </SelectContent>
                         </Select>
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <Select value={statusFilter} onValueChange={handleStatusChange}>
                           <SelectTrigger className="w-full xs:w-auto xs:min-w-[100px] sm:w-36 text-xs sm:text-sm h-9">
                             <SelectValue placeholder="Status" />
                           </SelectTrigger>
@@ -348,7 +418,7 @@ export default function StudentFeed() {
                         </Select>
                         <div className="flex rounded-lg bg-muted p-1 ml-auto">
                           <button
-                            onClick={() => setSortBy('hot')}
+                            onClick={() => handleSortChange('hot')}
                             className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all ${
                               sortBy === 'hot' ? 'bg-card shadow-sm' : 'text-muted-foreground'
                             }`}
@@ -357,7 +427,7 @@ export default function StudentFeed() {
                             <span className="hidden xs:inline">Hot</span>
                           </button>
                           <button
-                            onClick={() => setSortBy('new')}
+                            onClick={() => handleSortChange('new')}
                             className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all ${
                               sortBy === 'new' ? 'bg-card shadow-sm' : 'text-muted-foreground'
                             }`}
@@ -390,16 +460,23 @@ export default function StudentFeed() {
                       </CardContent>
                     </Card>
                   ) : (
-                    filteredAndSortedIssues.map((issue, index) => (
-                      <motion.div
-                        key={issue.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                      >
-                        <IssueCard issue={issue} />
-                      </motion.div>
-                    ))
+                    <>
+                      {paginatedFeed.map((issue, index) => (
+                        <motion.div
+                          key={issue.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                        >
+                          <IssueCard issue={issue} />
+                        </motion.div>
+                      ))}
+                      <PaginationControls
+                        currentPage={currentPage}
+                        totalPages={feedTotalPages}
+                        onPageChange={setCurrentPage}
+                      />
+                    </>
                   )}
                 </div>
               </TabsContent>
@@ -423,25 +500,32 @@ export default function StudentFeed() {
                       </CardContent>
                     </Card>
                   ) : (
-                    officialIssues.map((issue, index) => (
-                      <motion.div
-                        key={issue.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                      >
-                        <div className="relative">
-                          <Badge 
-                            variant="default" 
-                            className="absolute -top-2 -right-2 z-10 flex items-center gap-1"
-                          >
-                            <Shield className="h-3 w-3" />
-                            Official
-                          </Badge>
-                          <IssueCard issue={issue} />
-                        </div>
-                      </motion.div>
-                    ))
+                    <>
+                      {paginatedOfficial.map((issue, index) => (
+                        <motion.div
+                          key={issue.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                        >
+                          <div className="relative">
+                            <Badge 
+                              variant="default" 
+                              className="absolute -top-2 -right-2 z-10 flex items-center gap-1"
+                            >
+                              <Shield className="h-3 w-3" />
+                              Official
+                            </Badge>
+                            <IssueCard issue={issue} />
+                          </div>
+                        </motion.div>
+                      ))}
+                      <PaginationControls
+                        currentPage={currentPage}
+                        totalPages={officialTotalPages}
+                        onPageChange={setCurrentPage}
+                      />
+                    </>
                   )}
                 </div>
               </TabsContent>
@@ -465,24 +549,31 @@ export default function StudentFeed() {
                       </CardContent>
                     </Card>
                   ) : (
-                    allReportedIssues.map((issue, index) => (
-                      <motion.div
-                        key={issue.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                      >
-                        <div className="relative">
-                          <Badge 
-                            variant="destructive" 
-                            className="absolute -top-2 -right-2 z-10"
-                          >
-                            {issue.reportCount} reports
-                          </Badge>
-                          <IssueCard issue={issue} />
-                        </div>
-                      </motion.div>
-                    ))
+                    <>
+                      {paginatedReported.map((issue, index) => (
+                        <motion.div
+                          key={issue.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                        >
+                          <div className="relative">
+                            <Badge 
+                              variant="destructive" 
+                              className="absolute -top-2 -right-2 z-10"
+                            >
+                              {issue.reportCount} reports
+                            </Badge>
+                            <IssueCard issue={issue} />
+                          </div>
+                        </motion.div>
+                      ))}
+                      <PaginationControls
+                        currentPage={currentPage}
+                        totalPages={reportedTotalPages}
+                        onPageChange={setCurrentPage}
+                      />
+                    </>
                   )}
                 </div>
               </TabsContent>

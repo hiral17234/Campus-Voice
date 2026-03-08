@@ -565,6 +565,19 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     const issue = issues.find((i) => i.id === issueId);
     if (!issue) throw new Error('Issue not found');
 
+    const newTimeline = [
+      ...issue.timeline.map(t => ({
+        ...t,
+        timestamp: t.timestamp instanceof Date ? Timestamp.fromDate(t.timestamp) : t.timestamp,
+      })),
+      {
+        id: `timeline-${Date.now()}`,
+        status: 'pending',
+        note: 'Issue verified as legitimate and restored (falsely accused)',
+        timestamp: Timestamp.now(),
+      },
+    ];
+
     await updateDoc(doc(db, 'issues', issueId), {
       isDeleted: false,
       isReported: false,
@@ -572,8 +585,34 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       reports: [],
       reportCount: 0,
       status: 'pending',
+      timeline: newTimeline,
       updatedAt: serverTimestamp(),
     });
+
+    // Notify author
+    await addDoc(collection(db, 'notifications'), {
+      userId: issue.authorId,
+      type: 'system',
+      title: 'Issue Verified',
+      message: 'Your issue has been reviewed and verified as legitimate. It has been restored with a Verified True badge.',
+      issueId,
+      isRead: false,
+      createdAt: serverTimestamp(),
+    });
+
+    // Notify all reporters that their report was found to be false
+    const uniqueReporterIds = [...new Set(issue.reports.map(r => r.reporterId))];
+    for (const reporterId of uniqueReporterIds) {
+      await addDoc(collection(db, 'notifications'), {
+        userId: reporterId,
+        type: 'system',
+        title: 'Report Reviewed',
+        message: 'An issue you reported has been reviewed and verified as legitimate. Please ensure reports are made in good faith.',
+        issueId,
+        isRead: false,
+        createdAt: serverTimestamp(),
+      });
+    }
   };
 
   const getUserActivity = useCallback((userId: string): UserActivity => {

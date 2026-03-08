@@ -48,11 +48,75 @@ import {
   UserX,
   UserCheck,
   SlidersHorizontal,
-  ChevronDown
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 import { DepartmentSelect } from '@/components/DepartmentSelect';
 import { AdminDashboardSkeleton } from '@/components/AdminDashboardSkeleton';
+
+const ITEMS_PER_PAGE = 12;
+
+function PaginationControls({ currentPage, totalPages, onPageChange }: { currentPage: number; totalPages: number; onPageChange: (page: number) => void }) {
+  if (totalPages <= 1) return null;
+
+  const getPageNumbers = () => {
+    const pages: (number | 'ellipsis')[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push('ellipsis');
+      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+        pages.push(i);
+      }
+      if (currentPage < totalPages - 2) pages.push('ellipsis');
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
+  return (
+    <div className="flex items-center justify-center gap-1 mt-6">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="h-8 px-2 sm:px-3 gap-1"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        <span className="hidden sm:inline">Previous</span>
+      </Button>
+      {getPageNumbers().map((page, idx) =>
+        page === 'ellipsis' ? (
+          <span key={`e-${idx}`} className="px-2 text-muted-foreground">…</span>
+        ) : (
+          <Button
+            key={page}
+            variant={page === currentPage ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => onPageChange(page)}
+            className="h-8 w-8 p-0"
+          >
+            {page}
+          </Button>
+        )
+      )}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="h-8 px-2 sm:px-3 gap-1"
+      >
+        <span className="hidden sm:inline">Next</span>
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();

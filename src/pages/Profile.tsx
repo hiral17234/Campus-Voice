@@ -355,9 +355,10 @@ export default function Profile() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {downvotedIssues.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">
-                      No downvoted issues
-                    </p>
+                    <div className="text-center py-8 text-muted-foreground">
+                      <ThumbsDown className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p>No downvoted issues</p>
+                    </div>
                   ) : (
                     downvotedIssues.map(issue => (
                       <IssueListItem key={issue.id} issue={issue} />

@@ -169,8 +169,8 @@ export interface UserActivity {
   totalCommentsReceived: number;
 }
 
-export const CAMPUS_CODE = 'CAMPUS2024';
-export const FACULTY_CODE = 'MITS2025';
+export const CAMPUS_CODE = import.meta.env.VITE_CAMPUS_CODE || 'CAMPUS2024';
+export const FACULTY_CODE = import.meta.env.VITE_FACULTY_CODE || 'MITS2025';
 
 export const CATEGORY_LABELS: Record<IssueCategory, string> = {
   academics: 'Academics',

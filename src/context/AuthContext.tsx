@@ -28,8 +28,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const FACULTY_CREDENTIALS = {
-  email: 'admin@institute.edu',
-  password: 'Admin9302@'
+  email: import.meta.env.VITE_FACULTY_EMAIL || 'admin@institute.edu',
+  password: import.meta.env.VITE_FACULTY_PASSWORD || 'Admin9302@',
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {

@@ -526,13 +526,38 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     const issue = issues.find((i) => i.id === issueId);
     if (!issue) throw new Error('Issue not found');
 
+    const newTimeline = [
+      ...issue.timeline.map(t => ({
+        ...t,
+        timestamp: t.timestamp instanceof Date ? Timestamp.fromDate(t.timestamp) : t.timestamp,
+      })),
+      {
+        id: `timeline-${Date.now()}`,
+        status: 'pending',
+        note: 'Issue restored by administration',
+        timestamp: Timestamp.now(),
+      },
+    ];
+
     await updateDoc(doc(db, 'issues', issueId), {
       isDeleted: false,
       isReported: false,
       reports: [],
       reportCount: 0,
       status: 'pending',
+      timeline: newTimeline,
       updatedAt: serverTimestamp(),
+    });
+
+    // Notify author
+    await addDoc(collection(db, 'notifications'), {
+      userId: issue.authorId,
+      type: 'system',
+      title: 'Issue Restored',
+      message: 'Your issue has been restored by administration.',
+      issueId,
+      isRead: false,
+      createdAt: serverTimestamp(),
     });
   };
 

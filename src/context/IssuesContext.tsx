@@ -204,6 +204,8 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
           content: data.text || data.content,
           mediaUrl: data.mediaUrl,
           mediaType: data.mediaType,
+          parentId: data.parentId,
+          replyToNickname: data.replyToNickname,
           createdAt: toDate(data.createdAt),
           isOfficial: data.isOfficial || false,
           isAdminResponse: data.isAdminResponse || data.isOfficial || false,

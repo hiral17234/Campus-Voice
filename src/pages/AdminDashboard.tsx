@@ -52,6 +52,7 @@ import {
 } from 'lucide-react';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 import { DepartmentSelect } from '@/components/DepartmentSelect';
+import { AdminDashboardSkeleton } from '@/components/AdminDashboardSkeleton';
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();

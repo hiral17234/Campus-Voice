@@ -60,6 +60,9 @@ export default function Login() {
       try {
         const available = await checkNicknameAvailable(nickname);
         setNicknameAvailable(available);
+        if (!available) {
+          toast.error('This nickname is already taken. Please choose another.');
+        }
       } catch (error) {
         console.error('Error checking nickname:', error);
         setNicknameAvailable(null);

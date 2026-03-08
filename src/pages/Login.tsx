@@ -206,7 +206,7 @@ export default function Login() {
                           placeholder="Choose your anonymous name"
                           value={nickname}
                           onChange={(e) => setNickname(e.target.value)}
-                          className="pl-10 pr-10"
+                          className="pl-10 pr-8"
                           required
                           minLength={3}
                           maxLength={20}

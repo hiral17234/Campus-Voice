@@ -44,9 +44,6 @@ export default function Login() {
 }, [isAuthReady, isAuthenticated, user, navigate]);
 
   // Generate initial nickname
-  useEffect(() => {
-    setNickname(generateNickname());
-  }, []);
 
   // Check nickname availability with debounce
   useEffect(() => {

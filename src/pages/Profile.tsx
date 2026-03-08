@@ -378,9 +378,11 @@ export default function Profile() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {commentedIssues.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">
-                      No commented issues
-                    </p>
+                    <div className="text-center py-8 text-muted-foreground">
+                      <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p>You haven't commented on any issues yet</p>
+                      <p className="text-sm mt-1 text-muted-foreground/70">Join the conversation on issues you care about</p>
+                    </div>
                   ) : (
                     commentedIssues.map(issue => (
                       <IssueListItem key={issue.id} issue={issue} />

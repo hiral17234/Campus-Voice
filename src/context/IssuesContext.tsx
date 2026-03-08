@@ -302,12 +302,18 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       createdAt: serverTimestamp(),
     };
 
-    // Only add media fields if they have values (Firebase rejects undefined)
+    // Only add optional fields if they have values (Firebase rejects undefined)
     if (data.mediaUrl) {
       commentDoc.mediaUrl = data.mediaUrl;
     }
     if (data.mediaType) {
       commentDoc.mediaType = data.mediaType;
+    }
+    if (data.parentId) {
+      commentDoc.parentId = data.parentId;
+    }
+    if (data.replyToNickname) {
+      commentDoc.replyToNickname = data.replyToNickname;
     }
 
     await addDoc(collection(db, 'comments'), commentDoc);

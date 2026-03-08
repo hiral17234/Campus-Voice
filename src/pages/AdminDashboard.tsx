@@ -132,6 +132,16 @@ export default function AdminDashboard() {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset page on filter/tab changes
+  const handleTabChange = (tab: string) => { setActiveTab(tab); setCurrentPage(1); };
+  const handleSearchChange = (v: string) => { setSearchQuery(v); setCurrentPage(1); };
+  const handleStatusFilterChange = (v: string) => { setStatusFilter(v); setCurrentPage(1); };
+  const handleCategoryFilterChange = (v: string) => { setCategoryFilter(v); setCurrentPage(1); };
+  const handlePriorityFilterChange = (v: string) => { setPriorityFilter(v); setCurrentPage(1); };
+  const handleSortChange = (v: typeof sortBy) => { setSortBy(v); setCurrentPage(1); };
+
   
   // Appeals state
   const [appeals, setAppeals] = useState<AccountAppeal[]>([]);

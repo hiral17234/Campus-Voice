@@ -108,20 +108,35 @@ export default function IssueDetail() {
     if (!newComment.trim() || !user) return;
     
     try {
-      await addComment(issue.id, {
+      const commentData: any = {
         issueId: issue.id,
         authorNickname: user.nickname!,
         authorId: user.id,
         content: newComment.trim(),
         isAdminResponse: user.role === 'admin',
-      });
+      };
+
+      if (replyingTo) {
+        // If replying to a reply, attach to original parent (1 level only)
+        const parentComment = issueComments.find((c: any) => c.id === replyingTo.id);
+        commentData.parentId = (parentComment as any)?.parentId || replyingTo.id;
+        commentData.replyToNickname = replyingTo.nickname;
+      }
+
+      await addComment(issue.id, commentData);
       
       setNewComment('');
+      setReplyingTo(null);
       toast.success('Comment added');
     } catch (error: any) {
       console.error('Error adding comment:', error);
       toast.error(error.message || 'Failed to add comment');
     }
+  };
+
+  const handleReply = (commentId: string, nickname: string) => {
+    setReplyingTo({ id: commentId, nickname });
+    commentInputRef.current?.focus();
   };
 
   const handleReportIssue = async (reason: ReportReason, customReason?: string) => {

@@ -963,6 +963,7 @@ export default function AdminDashboard() {
                         </CardContent>
                       </Card>
                     ))}
+                    <PaginationControls currentPage={currentPage} totalPages={appealsTotalPages} onPageChange={setCurrentPage} />
                   </div>
                 )}
               </CardContent>

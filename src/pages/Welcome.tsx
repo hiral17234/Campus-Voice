@@ -102,8 +102,8 @@ export default function Welcome() {
   ];
 
   const stats = [
-    { value: 15000, suffix: "+", label: "Issues Raised" },
-    { value: 95, suffix: "%", label: "Resolution Rate" },
+    { value: dynamicStats.totalIssues, suffix: "+", label: "Issues Raised" },
+    { value: dynamicStats.resolutionRate, suffix: "%", label: "Resolution Rate" },
     { value: 100, suffix: "%", label: "Anonymous" }
   ];
 

@@ -36,7 +36,7 @@ type SortOption = 'hot' | 'new';
 
 export default function StudentFeed() {
   const { user, logout } = useAuth();
-  const { issues, stats, notifications } = useIssues();
+  const { issues, stats, notifications, isLoading } = useIssues();
   const navigate = useNavigate();
   const [sortBy, setSortBy] = useState<SortOption>('hot');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');

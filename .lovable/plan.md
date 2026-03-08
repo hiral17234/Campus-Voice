@@ -1,44 +1,87 @@
 
+# Mobile-Friendly Admin Dashboard Issues View
 
-## Plan: Pagination + Falsely Accused Workflow Fix
+## Problem
+The Faculty Dashboard's issues table requires horizontal scrolling on mobile to see category, status, priority, votes, and action buttons. This creates a poor user experience on phones.
 
-### 1. Add Pagination to Student Feed (`src/pages/StudentFeed.tsx`)
+## Solution
+Create a responsive layout that shows:
+- **Desktop (md and above)**: Keep the current table layout
+- **Mobile (below md)**: Show compact issue cards that expand on tap to reveal all details
 
-- Add `currentPage` state (default 1), reset to 1 when filters/sort/tab change
-- Set `ITEMS_PER_PAGE = 12`
-- Slice `filteredAndSortedIssues` to show only the current page's items
-- Add pagination controls at the bottom using the existing `Pagination` UI components (`src/components/ui/pagination.tsx`)
-- Show page numbers with ellipsis for large page counts, plus Previous/Next buttons
-- Apply same pagination to the Official and Reported tabs
+## Implementation Details
 
-### 2. Add Pagination to Admin Dashboard (`src/pages/AdminDashboard.tsx`)
+### New Component: `AdminIssueCard.tsx`
+A mobile-optimized card component specifically for the admin dashboard that:
 
-- Add `currentPage` state, reset on tab/filter changes
-- Set `ITEMS_PER_PAGE = 12`
-- Slice `filteredIssues` for the current page in both mobile card view and desktop table view
-- Add pagination controls below the issues list
-- Also paginate the Appeals list
+**Collapsed State (default):**
+- Issue title with status indicator icon
+- Location and time (compact)
+- Vote counts inline
+- Visual indicators for reported/official/falsely accused
 
-### 3. Fix Falsely Accused & Restore Workflow (`src/context/IssuesContext.tsx`)
+**Expanded State (on tap):**
+- Full badges row: Category, Status, Priority
+- Department assignment dropdown
+- Report count (if applicable)
+- Action buttons: View, Change Status, Restore/Verify
 
-Current `markAsFalselyAccused` only updates the issue document. It should also:
-- Send notifications to all users who reported the issue (from `issue.reports`) warning them their report was found to be false
-- Restore the issue's previous status (before deletion) instead of resetting to `pending` — or keep `pending` as a safe default but add a timeline event
+###Also fix the things of falsely accoused and appeals like how they should work in real 
 
-Current `restoreIssue` similarly needs:
-- A notification to the issue author that their issue was restored
-- A timeline event recording the restoration
+### Visual Layout
 
-### Technical Details
+**Collapsed Card:**
+```text
++------------------------------------------+
+| [Flag] Issue Title Here...        ↑5 ↓2  |
+| 📍 Library · 2 hours ago                 |
++------------------------------------------+
+```
 
-**Pagination helper** (shared logic): Compute `totalPages`, `paginatedItems`, and generate page number array with ellipsis. This will be inline in each page component to keep it simple.
+**Expanded Card (after tap):**
+```text
++------------------------------------------+
+| [Flag] Issue Title Here...        ↑5 ↓2  |
+| 📍 Library · 2 hours ago                 |
+|------------------------------------------|
+| [Infrastructure] [Pending] [High]        |
+|                                          |
+| Department: [Select dropdown      ▼]     |
+| Reports: 5 reports                       |
+|                                          |
+| [👁 View]  [↻ Status]  [✓ Verify]       |
++------------------------------------------+
+```
 
-**Notification on falsely accused**: Loop through `issue.reports`, create a notification doc for each unique `reporterId` with message like "An issue you reported has been reviewed and verified as legitimate."
+### Files to Modify
 
-**Notification on restore**: Create notification for `issue.authorId` with message "Your issue has been restored by administration."
+**1. Create `src/components/AdminIssueCard.tsx`**
+- New component for mobile issue display
+- Uses Framer Motion for smooth expand/collapse animation
+- Includes all admin actions (status change, priority, department)
+- Shows different action buttons based on tab (all/reported/deleted/falsely_accused)
 
-### Files Changed
-- `src/pages/StudentFeed.tsx` — pagination state + controls
-- `src/pages/AdminDashboard.tsx` — pagination state + controls  
-- `src/context/IssuesContext.tsx` — enhance `markAsFalselyAccused` and `restoreIssue` with notifications and timeline events
+**2. Update `src/pages/AdminDashboard.tsx`**
+- Import `useIsMobile` hook
+- Import new `AdminIssueCard` component
+- Conditionally render:
+  - Table layout when `!isMobile`
+  - Card list when `isMobile`
+- Keep all existing functionality and filters working
 
+### Animation Behavior
+- **Expand**: 300ms ease-out, height auto-animate
+- **Chevron icon**: Rotates 180 degrees when expanded
+- **Staggered entry**: Cards animate in sequence on initial load
+
+### Mobile-Specific Features
+- Larger touch targets for action buttons (min 44px)
+- Full-width dropdowns for priority/department selection
+- Swipe-friendly card spacing
+- Sticky header remains for filters access
+
+### Technical Notes
+- Use `AnimatePresence` for smooth enter/exit of expanded content
+- Use `motion.div` with `layout` prop for height animation
+- Reuse existing badge components (StatusBadge, CategoryBadge, PriorityBadge)
+- All existing handlers work unchanged (handlePriorityChange, handleDepartmentAssign, etc.)

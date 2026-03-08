@@ -48,11 +48,75 @@ import {
   UserX,
   UserCheck,
   SlidersHorizontal,
-  ChevronDown
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 import { DepartmentSelect } from '@/components/DepartmentSelect';
 import { AdminDashboardSkeleton } from '@/components/AdminDashboardSkeleton';
+
+const ITEMS_PER_PAGE = 12;
+
+function PaginationControls({ currentPage, totalPages, onPageChange }: { currentPage: number; totalPages: number; onPageChange: (page: number) => void }) {
+  if (totalPages <= 1) return null;
+
+  const getPageNumbers = () => {
+    const pages: (number | 'ellipsis')[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push('ellipsis');
+      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+        pages.push(i);
+      }
+      if (currentPage < totalPages - 2) pages.push('ellipsis');
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
+  return (
+    <div className="flex items-center justify-center gap-1 mt-6">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="h-8 px-2 sm:px-3 gap-1"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        <span className="hidden sm:inline">Previous</span>
+      </Button>
+      {getPageNumbers().map((page, idx) =>
+        page === 'ellipsis' ? (
+          <span key={`e-${idx}`} className="px-2 text-muted-foreground">…</span>
+        ) : (
+          <Button
+            key={page}
+            variant={page === currentPage ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => onPageChange(page)}
+            className="h-8 w-8 p-0"
+          >
+            {page}
+          </Button>
+        )
+      )}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="h-8 px-2 sm:px-3 gap-1"
+      >
+        <span className="hidden sm:inline">Next</span>
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
@@ -68,6 +132,16 @@ export default function AdminDashboard() {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset page on filter/tab changes
+  const handleTabChange = (tab: string) => { setActiveTab(tab); setCurrentPage(1); };
+  const handleSearchChange = (v: string) => { setSearchQuery(v); setCurrentPage(1); };
+  const handleStatusFilterChange = (v: string) => { setStatusFilter(v); setCurrentPage(1); };
+  const handleCategoryFilterChange = (v: string) => { setCategoryFilter(v); setCurrentPage(1); };
+  const handlePriorityFilterChange = (v: string) => { setPriorityFilter(v); setCurrentPage(1); };
+  const handleSortChange = (v: typeof sortBy) => { setSortBy(v); setCurrentPage(1); };
+
   
   // Appeals state
   const [appeals, setAppeals] = useState<AccountAppeal[]>([]);
@@ -232,6 +306,11 @@ export default function AdminDashboard() {
 
     return filtered;
   }, [issues, reportedIssues, deletedIssues, falselyAccusedIssues, activeTab, searchQuery, statusFilter, categoryFilter, priorityFilter, sortBy]);
+
+  const issuesTotalPages = Math.max(1, Math.ceil(filteredIssues.length / ITEMS_PER_PAGE));
+  const paginatedIssues = filteredIssues.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const appealsTotalPages = Math.max(1, Math.ceil(appeals.length / ITEMS_PER_PAGE));
+  const paginatedAppeals = appeals.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const handleLogout = async () => {
     await logout();
@@ -409,7 +488,7 @@ export default function AdminDashboard() {
           </motion.div>
         )}
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
             <TabsList className="mb-4 flex-wrap h-auto gap-1 p-1 min-w-max">
               <TabsTrigger value="all" className="text-xs sm:text-sm px-2 sm:px-3">All</TabsTrigger>
@@ -466,11 +545,11 @@ export default function AdminDashboard() {
                         {activeTab === 'reported' ? 'Reported Issues' : activeTab === 'deleted' ? 'Deleted Issues' : activeTab === 'falsely_accused' ? 'Falsely Accused Issues' : activeTab === 'appeals' ? 'Account Appeals' : 'All Issues'}
                       </CardTitle>
                       <div className="relative flex-1 min-w-[200px]">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             placeholder="Search issues..."
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => handleSearchChange(e.target.value)}
                             className="pl-10"
                           />
                         </div>
@@ -495,7 +574,7 @@ export default function AdminDashboard() {
                         {/* Filters: always visible on desktop, collapsible on mobile */}
                         {(!isMobile || showFilters) && (
                           <div className={`flex gap-2 ${isMobile ? 'flex-col w-full' : 'flex-wrap'}`}>
-                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
                               <SelectTrigger className={isMobile ? 'w-full' : 'w-32'}>
                                 <SelectValue placeholder="Status" />
                               </SelectTrigger>
@@ -506,7 +585,7 @@ export default function AdminDashboard() {
                                 ))}
                               </SelectContent>
                             </Select>
-                            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                            <Select value={categoryFilter} onValueChange={handleCategoryFilterChange}>
                               <SelectTrigger className={isMobile ? 'w-full' : 'w-32'}>
                                 <SelectValue placeholder="Category" />
                               </SelectTrigger>
@@ -517,7 +596,7 @@ export default function AdminDashboard() {
                                 ))}
                               </SelectContent>
                             </Select>
-                            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                            <Select value={priorityFilter} onValueChange={handlePriorityFilterChange}>
                               <SelectTrigger className={isMobile ? 'w-full' : 'w-32'}>
                                 <SelectValue placeholder="Priority" />
                               </SelectTrigger>
@@ -528,7 +607,7 @@ export default function AdminDashboard() {
                                 ))}
                               </SelectContent>
                             </Select>
-                            <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+                            <Select value={sortBy} onValueChange={(v) => handleSortChange(v as typeof sortBy)}>
                               <SelectTrigger className={isMobile ? 'w-full' : 'w-32'}>
                                 <ArrowUpDown className="h-4 w-4 mr-2" />
                                 <SelectValue />
@@ -552,22 +631,25 @@ export default function AdminDashboard() {
                             No issues found
                           </div>
                         ) : (
-                          filteredIssues.map((issue, index) => (
-                            <AdminIssueCard
-                              key={issue.id}
-                              issue={issue}
-                              activeTab={activeTab as 'all' | 'reported' | 'deleted' | 'falsely_accused'}
-                              onStatusChange={(issue) => {
-                                setSelectedIssue(issue);
-                                setShowStatusModal(true);
-                              }}
-                              onPriorityChange={handlePriorityChange}
-                              onDepartmentAssign={handleDepartmentAssign}
-                              onRestore={handleRestoreIssue}
-                              onMarkFalselyAccused={handleMarkFalselyAccused}
-                              index={index}
-                            />
-                          ))
+                          <>
+                            {paginatedIssues.map((issue, index) => (
+                              <AdminIssueCard
+                                key={issue.id}
+                                issue={issue}
+                                activeTab={activeTab as 'all' | 'reported' | 'deleted' | 'falsely_accused'}
+                                onStatusChange={(issue) => {
+                                  setSelectedIssue(issue);
+                                  setShowStatusModal(true);
+                                }}
+                                onPriorityChange={handlePriorityChange}
+                                onDepartmentAssign={handleDepartmentAssign}
+                                onRestore={handleRestoreIssue}
+                                onMarkFalselyAccused={handleMarkFalselyAccused}
+                                index={index}
+                              />
+                            ))}
+                            <PaginationControls currentPage={currentPage} totalPages={issuesTotalPages} onPageChange={setCurrentPage} />
+                          </>
                         )}
                       </div>
                     ) : (
@@ -593,7 +675,7 @@ export default function AdminDashboard() {
                                 </TableCell>
                               </TableRow>
                             ) : (
-                              filteredIssues.map((issue) => (
+                              paginatedIssues.map((issue) => (
                                 <TableRow key={issue.id} className={issue.isFalselyAccused ? 'bg-green-500/10 border-l-4 border-green-500' : issue.isReported ? 'bg-red-500/5' : issue.isOfficial ? 'bg-primary/5' : ''}>
                                   <TableCell>
                                     <div className="max-w-[180px]">
@@ -720,6 +802,7 @@ export default function AdminDashboard() {
                             )}
                           </TableBody>
                         </Table>
+                        <PaginationControls currentPage={currentPage} totalPages={issuesTotalPages} onPageChange={setCurrentPage} />
                       </div>
                     )}
                   </CardContent>
@@ -808,7 +891,7 @@ export default function AdminDashboard() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {appeals.map((appeal) => (
+                    {paginatedAppeals.map((appeal) => (
                       <Card key={appeal.id} className={`border ${appeal.status === 'pending' ? 'border-orange-500/50 bg-orange-500/5' : appeal.status === 'approved' ? 'border-green-500/50 bg-green-500/5' : 'border-red-500/50 bg-red-500/5'}`}>
                         <CardContent className="p-4">
                           <div className="flex flex-col gap-4">
@@ -880,6 +963,7 @@ export default function AdminDashboard() {
                         </CardContent>
                       </Card>
                     ))}
+                    <PaginationControls currentPage={currentPage} totalPages={appealsTotalPages} onPageChange={setCurrentPage} />
                   </div>
                 )}
               </CardContent>

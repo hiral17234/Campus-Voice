@@ -31,6 +31,8 @@ import {
   Shield
 } from 'lucide-react';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
+import { EmptyState } from '@/components/EmptyState';
+import { FeedSkeleton } from '@/components/FeedSkeleton';
 
 type SortOption = 'hot' | 'new';
 

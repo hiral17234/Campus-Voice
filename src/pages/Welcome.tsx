@@ -42,6 +42,37 @@ export default function Welcome() {
     navigate("/login");
   };
 
+  const [dynamicStats, setDynamicStats] = useState<{ totalIssues: number; resolutionRate: number; loaded: boolean }>({
+    totalIssues: 0,
+    resolutionRate: 0,
+    loaded: false,
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const issuesRef = collection(db, "issues");
+        const totalQuery = query(issuesRef, where("isDeleted", "==", false));
+        const resolvedQuery = query(issuesRef, where("status", "==", "resolved"), where("isDeleted", "==", false));
+        
+        const [totalSnap, resolvedSnap] = await Promise.all([
+          getCountFromServer(totalQuery),
+          getCountFromServer(resolvedQuery),
+        ]);
+        
+        const total = totalSnap.data().count;
+        const resolved = resolvedSnap.data().count;
+        const rate = total > 0 ? Math.round((resolved / total) * 100) : 0;
+        
+        setDynamicStats({ totalIssues: total, resolutionRate: rate, loaded: true });
+      } catch (err) {
+        console.error("Failed to fetch stats:", err);
+        setDynamicStats(prev => ({ ...prev, loaded: true }));
+      }
+    };
+    fetchStats();
+  }, []);
+
   const pillars = [
     {
       icon: Shield,

@@ -218,6 +218,14 @@ export default function StudentFeed() {
         <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden h-8 w-8 sm:h-9 sm:w-9"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
               <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl overflow-hidden flex-shrink-0">
                 <img src={campusVoiceLogo} alt="CampusVoice" className="w-full h-full object-contain p-0.5 sm:p-1" />
               </div>
@@ -245,7 +253,7 @@ export default function StudentFeed() {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/stats')}
-                className="hidden sm:flex h-9"
+                className="hidden lg:flex h-9"
               >
                 <BarChart3 className="h-4 w-4 mr-1" />
                 Stats

@@ -373,10 +373,20 @@ export default function StudentFeed() {
 
                 {/* Issues List */}
                 <div className="space-y-4">
-                  {filteredAndSortedIssues.length === 0 ? (
+                  {isLoading ? (
+                    <FeedSkeleton count={3} />
+                  ) : filteredAndSortedIssues.length === 0 ? (
                     <Card className="glass-card">
-                      <CardContent className="p-8 text-center">
-                        <p className="text-muted-foreground">No issues found</p>
+                      <CardContent className="p-2">
+                        <EmptyState
+                          icon={Search}
+                          title="No issues found"
+                          description={searchQuery || categoryFilter !== 'all' || statusFilter !== 'all' 
+                            ? "Try adjusting your filters or search query" 
+                            : "Be the first to report an issue on campus"}
+                          actionLabel="Report Issue"
+                          onAction={() => navigate('/create')}
+                        />
                       </CardContent>
                     </Card>
                   ) : (

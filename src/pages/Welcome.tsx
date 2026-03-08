@@ -364,10 +364,19 @@ export default function Welcome() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: i * 0.1 }}
               >
-                <div className="text-4xl sm:text-6xl font-bold bg-gradient-to-r from-yellow-400 to-purple-500 bg-clip-text text-transparent mb-2">
-                  <CountUp end={stat.value} suffix={stat.suffix} />
-                </div>
-                <p className="text-white/60 text-sm sm:text-base">{stat.label}</p>
+                {!dynamicStats.loaded && stat.label !== "Anonymous" ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <Skeleton className="h-12 sm:h-16 w-24 sm:w-32 bg-white/10 rounded" />
+                    <Skeleton className="h-4 w-20 bg-white/10 rounded" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-4xl sm:text-6xl font-bold bg-gradient-to-r from-yellow-400 to-purple-500 bg-clip-text text-transparent mb-2">
+                      <CountUp end={stat.value} suffix={stat.suffix} />
+                    </div>
+                    <p className="text-white/60 text-sm sm:text-base">{stat.label}</p>
+                  </>
+                )}
               </motion.div>
             ))}
           </div>

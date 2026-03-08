@@ -425,9 +425,11 @@ export default function Profile() {
                 </CardHeader>
                 <CardContent>
                   {userMedia.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">
-                      No media shared yet
-                    </p>
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Image className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p>No media shared yet</p>
+                      <p className="text-sm mt-1 text-muted-foreground/70">Attach photos or videos when reporting issues</p>
+                    </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                       {userMedia.map((media, idx) => (

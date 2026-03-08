@@ -631,7 +631,8 @@ export default function AdminDashboard() {
                             No issues found
                           </div>
                         ) : (
-                          filteredIssues.map((issue, index) => (
+                          <>
+                          {paginatedIssues.map((issue, index) => (
                             <AdminIssueCard
                               key={issue.id}
                               issue={issue}

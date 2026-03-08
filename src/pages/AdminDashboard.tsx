@@ -891,7 +891,7 @@ export default function AdminDashboard() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {appeals.map((appeal) => (
+                    {paginatedAppeals.map((appeal) => (
                       <Card key={appeal.id} className={`border ${appeal.status === 'pending' ? 'border-orange-500/50 bg-orange-500/5' : appeal.status === 'approved' ? 'border-green-500/50 bg-green-500/5' : 'border-red-500/50 bg-red-500/5'}`}>
                         <CardContent className="p-4">
                           <div className="flex flex-col gap-4">

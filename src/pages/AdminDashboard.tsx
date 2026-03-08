@@ -886,6 +886,8 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
         </Tabs>
+        </>
+        )}
       </main>
 
       {/* Status Change Modal */}

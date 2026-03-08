@@ -52,9 +52,26 @@ export default function IssueDetail() {
   const [reportingCommentId, setReportingCommentId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showVoteInfo, setShowVoteInfo] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<{ id: string; nickname: string } | null>(null);
+  const commentInputRef = useRef<HTMLTextAreaElement>(null);
 
   const issue = getIssueById(id!);
   const issueComments = comments[id!] || [];
+
+  // Group comments: top-level + replies nested under parent
+  const groupedComments = useMemo(() => {
+    const topLevel = issueComments.filter((c: any) => !c.parentId);
+    const replies = issueComments.filter((c: any) => c.parentId);
+    const replyMap: Record<string, typeof issueComments> = {};
+    replies.forEach((r: any) => {
+      const pid = r.parentId as string;
+      if (!replyMap[pid]) replyMap[pid] = [];
+      replyMap[pid].push(r);
+    });
+    // Sort replies chronologically
+    Object.values(replyMap).forEach(arr => arr.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+    return { topLevel, replyMap };
+  }, [issueComments]);
 
   if (!issue) {
     return (

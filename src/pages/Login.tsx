@@ -234,12 +234,6 @@ export default function Login() {
                         <RefreshCw className="h-4 w-4" />
                       </Button>
                     </div>
-                    {nicknameAvailable === false && (
-                      <p className="text-xs text-destructive">This name is already taken</p>
-                    )}
-                    {nicknameAvailable === true && (
-                      <p className="text-xs text-green-600 dark:text-green-400">Name is available!</p>
-                    )}
                   </motion.div>
                 )}
               </AnimatePresence>

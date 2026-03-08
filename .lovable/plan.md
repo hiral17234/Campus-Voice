@@ -1,29 +1,87 @@
 
+# Mobile-Friendly Admin Dashboard Issues View
 
-## Plan: Add Threaded (Reply) Comments
+## Problem
+The Faculty Dashboard's issues table requires horizontal scrolling on mobile to see category, status, priority, votes, and action buttons. This creates a poor user experience on phones.
 
-### Overview
-Add reply-to-comment threading so users can respond to specific comments. Replies will be displayed nested under their parent comment.
+## Solution
+Create a responsive layout that shows:
+- **Desktop (md and above)**: Keep the current table layout
+- **Mobile (below md)**: Show compact issue cards that expand on tap to reveal all details
 
-### Changes
+## Implementation Details
 
-**1. Update Comment type (`src/types/index.ts`)**
-- Add `parentId?: string` and `replyToNickname?: string` fields to the `Comment` interface
+### New Component: `AdminIssueCard.tsx`
+A mobile-optimized card component specifically for the admin dashboard that:
 
-**2. Update `addComment` in `src/context/IssuesContext.tsx`**
-- Persist `parentId` and `replyToNickname` fields to Firestore when provided
+**Collapsed State (default):**
+- Issue title with status indicator icon
+- Location and time (compact)
+- Vote counts inline
+- Visual indicators for reported/official/falsely accused
 
-**3. Update `IssueDetail.tsx` — threading UI**
-- Add `replyingTo` state (`{ id, nickname } | null`)
-- Add a "Reply" button on each comment
-- When replying, show a small indicator above the textarea ("Replying to @Nickname ✕")
-- Pass `parentId` and `replyToNickname` to `addComment` when submitting a reply
-- Group comments: render top-level comments, then nest replies (1 level deep) indented underneath their parent with a visual connector line
-- Sort replies chronologically under each parent
+**Expanded State (on tap):**
+- Full badges row: Category, Status, Priority
+- Department assignment dropdown
+- Report count (if applicable)
+- Action buttons: View, Change Status, Restore/Verify
 
-### UI Behavior
-- Clicking "Reply" sets `replyingTo` state and focuses the textarea
-- Clicking ✕ on the reply indicator cancels the reply (clears `replyingTo`)
-- Replies show "@nickname" prefix in their content area and are indented with a left border
-- Only 1 level of nesting (replies to replies still attach to the original parent)
+###Also fix the things of falsely accoused and appeals like how they should work in real 
 
+### Visual Layout
+
+**Collapsed Card:**
+```text
++------------------------------------------+
+| [Flag] Issue Title Here...        ↑5 ↓2  |
+| 📍 Library · 2 hours ago                 |
++------------------------------------------+
+```
+
+**Expanded Card (after tap):**
+```text
++------------------------------------------+
+| [Flag] Issue Title Here...        ↑5 ↓2  |
+| 📍 Library · 2 hours ago                 |
+|------------------------------------------|
+| [Infrastructure] [Pending] [High]        |
+|                                          |
+| Department: [Select dropdown      ▼]     |
+| Reports: 5 reports                       |
+|                                          |
+| [👁 View]  [↻ Status]  [✓ Verify]       |
++------------------------------------------+
+```
+
+### Files to Modify
+
+**1. Create `src/components/AdminIssueCard.tsx`**
+- New component for mobile issue display
+- Uses Framer Motion for smooth expand/collapse animation
+- Includes all admin actions (status change, priority, department)
+- Shows different action buttons based on tab (all/reported/deleted/falsely_accused)
+
+**2. Update `src/pages/AdminDashboard.tsx`**
+- Import `useIsMobile` hook
+- Import new `AdminIssueCard` component
+- Conditionally render:
+  - Table layout when `!isMobile`
+  - Card list when `isMobile`
+- Keep all existing functionality and filters working
+
+### Animation Behavior
+- **Expand**: 300ms ease-out, height auto-animate
+- **Chevron icon**: Rotates 180 degrees when expanded
+- **Staggered entry**: Cards animate in sequence on initial load
+
+### Mobile-Specific Features
+- Larger touch targets for action buttons (min 44px)
+- Full-width dropdowns for priority/department selection
+- Swipe-friendly card spacing
+- Sticky header remains for filters access
+
+### Technical Notes
+- Use `AnimatePresence` for smooth enter/exit of expanded content
+- Use `motion.div` with `layout` prop for height animation
+- Reuse existing badge components (StatusBadge, CategoryBadge, PriorityBadge)
+- All existing handlers work unchanged (handlePriorityChange, handleDepartmentAssign, etc.)

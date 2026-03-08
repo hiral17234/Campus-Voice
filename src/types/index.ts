@@ -77,6 +77,8 @@ export interface Comment {
   content: string;
   mediaUrl?: string;
   mediaType?: 'image' | 'audio' | 'video' | 'pdf';
+  parentId?: string;
+  replyToNickname?: string;
   createdAt: Date;
   isAdminResponse?: boolean;
   isOfficial?: boolean;

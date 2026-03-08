@@ -1,87 +1,74 @@
 
-# Mobile-Friendly Admin Dashboard Issues View
 
-## Problem
-The Faculty Dashboard's issues table requires horizontal scrolling on mobile to see category, status, priority, votes, and action buttons. This creates a poor user experience on phones.
+## Plan: Replace Fake Welcome Stats + Add Error/Empty States
 
-## Solution
-Create a responsive layout that shows:
-- **Desktop (md and above)**: Keep the current table layout
-- **Mobile (below md)**: Show compact issue cards that expand on tap to reveal all details
+### 1. Replace Fake Welcome Page Stats with Real Firestore Data
 
-## Implementation Details
+**Current problem**: Welcome page shows hardcoded `15000+`, `95%`, `100%` stats that are fake.
 
-### New Component: `AdminIssueCard.tsx`
-A mobile-optimized card component specifically for the admin dashboard that:
+**Solution**: Create a lightweight Firestore query on the Welcome page to fetch real counts, and compute resolution rate dynamically.
 
-**Collapsed State (default):**
-- Issue title with status indicator icon
-- Location and time (compact)
-- Vote counts inline
-- Visual indicators for reported/official/falsely accused
+**Changes to `src/pages/Welcome.tsx`**:
+- Import `collection`, `getCountFromServer` (or `getDocs`) and `query`/`where` from Firestore
+- Add a `useEffect` that fetches:
+  - Total issues count (non-deleted)
+  - Resolved issues count
+  - Compute resolution rate as `resolved / total * 100`
+- Replace the hardcoded `stats` array with dynamic values
+- Keep "100% Anonymous" as a static stat (it's a feature, not data)
+- Show loading skeletons while stats load
+- If fetch fails, show "---" or fallback gracefully
 
-**Expanded State (on tap):**
-- Full badges row: Category, Status, Priority
-- Department assignment dropdown
-- Report count (if applicable)
-- Action buttons: View, Change Status, Restore/Verify
+**Stats will become**:
+| Stat | Source |
+|------|--------|
+| Issues Raised | Real count from Firestore `issues` collection |
+| Resolution Rate | `(resolved / total) * 100` |
+| Anonymous | Keep as static "100%" (it's a feature claim) |
 
-###Also fix the things of falsely accoused and appeals like how they should work in real 
+### 2. Add Error States & Empty States Across Pages
 
-### Visual Layout
+**Pages to update**:
 
-**Collapsed Card:**
-```text
-+------------------------------------------+
-| [Flag] Issue Title Here...        ↑5 ↓2  |
-| 📍 Library · 2 hours ago                 |
-+------------------------------------------+
-```
+**`StudentFeed.tsx`** (lines 372-391):
+- Current empty state is bare: just "No issues found" text
+- Enhance with an illustration icon, descriptive text, and a CTA button to create an issue
+- Add a loading skeleton state using `isLoading` from IssuesContext (show 3 skeleton cards while loading)
 
-**Expanded Card (after tap):**
-```text
-+------------------------------------------+
-| [Flag] Issue Title Here...        ↑5 ↓2  |
-| 📍 Library · 2 hours ago                 |
-|------------------------------------------|
-| [Infrastructure] [Pending] [High]        |
-|                                          |
-| Department: [Select dropdown      ▼]     |
-| Reports: 5 reports                       |
-|                                          |
-| [👁 View]  [↻ Status]  [✓ Verify]       |
-+------------------------------------------+
-```
+**`Notifications.tsx`**:
+- Add empty state with `BellOff` icon and "No notifications yet" message when list is empty
+- Add loading state
 
-### Files to Modify
+**`PublicStats.tsx`**:
+- Add a loading skeleton for stat cards
+- Handle zero-data state gracefully with a message
 
-**1. Create `src/components/AdminIssueCard.tsx`**
-- New component for mobile issue display
-- Uses Framer Motion for smooth expand/collapse animation
-- Includes all admin actions (status change, priority, department)
-- Shows different action buttons based on tab (all/reported/deleted/falsely_accused)
+**`IssueDetail.tsx`**:
+- Already shows issue not found — enhance with a proper error card, icon, and back button instead of plain text
 
-**2. Update `src/pages/AdminDashboard.tsx`**
-- Import `useIsMobile` hook
-- Import new `AdminIssueCard` component
-- Conditionally render:
-  - Table layout when `!isMobile`
-  - Card list when `isMobile`
-- Keep all existing functionality and filters working
+**`Profile.tsx`**:
+- Add empty states for "no issues posted", "no upvoted issues" etc. in the activity tabs
 
-### Animation Behavior
-- **Expand**: 300ms ease-out, height auto-animate
-- **Chevron icon**: Rotates 180 degrees when expanded
-- **Staggered entry**: Cards animate in sequence on initial load
+### 3. Create a Reusable `EmptyState` Component
 
-### Mobile-Specific Features
-- Larger touch targets for action buttons (min 44px)
-- Full-width dropdowns for priority/department selection
-- Swipe-friendly card spacing
-- Sticky header remains for filters access
+**New file: `src/components/EmptyState.tsx`**
+- Props: `icon`, `title`, `description`, `action?` (button label + onClick)
+- Centered layout with muted icon, title, subtitle, and optional CTA
+- Reused across all pages
 
-### Technical Notes
-- Use `AnimatePresence` for smooth enter/exit of expanded content
-- Use `motion.div` with `layout` prop for height animation
-- Reuse existing badge components (StatusBadge, CategoryBadge, PriorityBadge)
-- All existing handlers work unchanged (handlePriorityChange, handleDepartmentAssign, etc.)
+### 4. Create a Reusable `FeedSkeleton` Component
+
+**New file: `src/components/FeedSkeleton.tsx`**
+- Renders 3 skeleton cards mimicking IssueCard layout
+- Used in StudentFeed and AdminDashboard during loading
+
+### Summary of Files Changed
+- `src/components/EmptyState.tsx` — new
+- `src/components/FeedSkeleton.tsx` — new
+- `src/pages/Welcome.tsx` — dynamic stats from Firestore
+- `src/pages/StudentFeed.tsx` — loading skeletons + enhanced empty states
+- `src/pages/Notifications.tsx` — empty state
+- `src/pages/IssueDetail.tsx` — enhanced error state
+- `src/pages/PublicStats.tsx` — loading state
+- `src/pages/Profile.tsx` — empty states for activity tabs
+

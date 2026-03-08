@@ -19,7 +19,7 @@ export default function Login() {
   const [adminPassword, setAdminPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [nickname, setNickname] = useState('');
+  const [nickname, setNickname] = useState(generateNickname());
   const [isCheckingNickname, setIsCheckingNickname] = useState(false);
   const [nicknameAvailable, setNicknameAvailable] = useState<boolean | null>(null);
   const {

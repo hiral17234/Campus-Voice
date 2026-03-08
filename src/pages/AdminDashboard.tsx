@@ -596,7 +596,7 @@ export default function AdminDashboard() {
                                 ))}
                               </SelectContent>
                             </Select>
-                            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                            <Select value={priorityFilter} onValueChange={handlePriorityFilterChange}>
                               <SelectTrigger className={isMobile ? 'w-full' : 'w-32'}>
                                 <SelectValue placeholder="Priority" />
                               </SelectTrigger>

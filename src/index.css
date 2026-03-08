@@ -125,6 +125,16 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
+
+  :root body {
+    background-image: radial-gradient(ellipse at 0% 0%, hsl(40 30% 93% / 0.6) 0%, transparent 50%),
+                      radial-gradient(ellipse at 100% 100%, hsl(40 20% 94% / 0.4) 0%, transparent 50%);
+    background-attachment: fixed;
+  }
+
+  .dark body {
+    background-image: none;
+  }
 }
 
 @layer utilities {

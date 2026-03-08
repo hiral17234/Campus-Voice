@@ -1,6 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { collection, query, where, getCountFromServer } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   ArrowRight, 
   Shield, 
@@ -39,6 +42,37 @@ export default function Welcome() {
     navigate("/login");
   };
 
+  const [dynamicStats, setDynamicStats] = useState<{ totalIssues: number; resolutionRate: number; loaded: boolean }>({
+    totalIssues: 0,
+    resolutionRate: 0,
+    loaded: false,
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const issuesRef = collection(db, "issues");
+        const totalQuery = query(issuesRef, where("isDeleted", "==", false));
+        const resolvedQuery = query(issuesRef, where("status", "==", "resolved"), where("isDeleted", "==", false));
+        
+        const [totalSnap, resolvedSnap] = await Promise.all([
+          getCountFromServer(totalQuery),
+          getCountFromServer(resolvedQuery),
+        ]);
+        
+        const total = totalSnap.data().count;
+        const resolved = resolvedSnap.data().count;
+        const rate = total > 0 ? Math.round((resolved / total) * 100) : 0;
+        
+        setDynamicStats({ totalIssues: total, resolutionRate: rate, loaded: true });
+      } catch (err) {
+        console.error("Failed to fetch stats:", err);
+        setDynamicStats(prev => ({ ...prev, loaded: true }));
+      }
+    };
+    fetchStats();
+  }, []);
+
   const pillars = [
     {
       icon: Shield,
@@ -68,8 +102,8 @@ export default function Welcome() {
   ];
 
   const stats = [
-    { value: 15000, suffix: "+", label: "Issues Raised" },
-    { value: 95, suffix: "%", label: "Resolution Rate" },
+    { value: dynamicStats.totalIssues, suffix: "+", label: "Issues Raised" },
+    { value: dynamicStats.resolutionRate, suffix: "%", label: "Resolution Rate" },
     { value: 100, suffix: "%", label: "Anonymous" }
   ];
 
@@ -330,10 +364,19 @@ export default function Welcome() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: i * 0.1 }}
               >
-                <div className="text-4xl sm:text-6xl font-bold bg-gradient-to-r from-yellow-400 to-purple-500 bg-clip-text text-transparent mb-2">
-                  <CountUp end={stat.value} suffix={stat.suffix} />
-                </div>
-                <p className="text-white/60 text-sm sm:text-base">{stat.label}</p>
+                {!dynamicStats.loaded && stat.label !== "Anonymous" ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <Skeleton className="h-12 sm:h-16 w-24 sm:w-32 bg-white/10 rounded" />
+                    <Skeleton className="h-4 w-20 bg-white/10 rounded" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-4xl sm:text-6xl font-bold bg-gradient-to-r from-yellow-400 to-purple-500 bg-clip-text text-transparent mb-2">
+                      <CountUp end={stat.value} suffix={stat.suffix} />
+                    </div>
+                    <p className="text-white/60 text-sm sm:text-base">{stat.label}</p>
+                  </>
+                )}
               </motion.div>
             ))}
           </div>

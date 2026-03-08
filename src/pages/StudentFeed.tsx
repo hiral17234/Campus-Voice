@@ -31,12 +31,14 @@ import {
   Shield
 } from 'lucide-react';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
+import { EmptyState } from '@/components/EmptyState';
+import { FeedSkeleton } from '@/components/FeedSkeleton';
 
 type SortOption = 'hot' | 'new';
 
 export default function StudentFeed() {
   const { user, logout } = useAuth();
-  const { issues, stats, notifications } = useIssues();
+  const { issues, stats, notifications, isLoading } = useIssues();
   const navigate = useNavigate();
   const [sortBy, setSortBy] = useState<SortOption>('hot');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -371,10 +373,20 @@ export default function StudentFeed() {
 
                 {/* Issues List */}
                 <div className="space-y-4">
-                  {filteredAndSortedIssues.length === 0 ? (
+                  {isLoading ? (
+                    <FeedSkeleton count={3} />
+                  ) : filteredAndSortedIssues.length === 0 ? (
                     <Card className="glass-card">
-                      <CardContent className="p-8 text-center">
-                        <p className="text-muted-foreground">No issues found</p>
+                      <CardContent className="p-2">
+                        <EmptyState
+                          icon={Search}
+                          title="No issues found"
+                          description={searchQuery || categoryFilter !== 'all' || statusFilter !== 'all' 
+                            ? "Try adjusting your filters or search query" 
+                            : "Be the first to report an issue on campus"}
+                          actionLabel="Report Issue"
+                          onAction={() => navigate('/create')}
+                        />
                       </CardContent>
                     </Card>
                   ) : (

@@ -331,9 +331,11 @@ export default function Profile() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {upvotedIssues.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">
-                      No upvoted issues
-                    </p>
+                    <div className="text-center py-8 text-muted-foreground">
+                      <ThumbsUp className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p>You haven't upvoted any issues yet</p>
+                      <p className="text-sm mt-1 text-muted-foreground/70">Upvote issues you care about to show support</p>
+                    </div>
                   ) : (
                     upvotedIssues.map(issue => (
                       <IssueListItem key={issue.id} issue={issue} />
@@ -353,9 +355,10 @@ export default function Profile() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {downvotedIssues.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">
-                      No downvoted issues
-                    </p>
+                    <div className="text-center py-8 text-muted-foreground">
+                      <ThumbsDown className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p>No downvoted issues</p>
+                    </div>
                   ) : (
                     downvotedIssues.map(issue => (
                       <IssueListItem key={issue.id} issue={issue} />
@@ -375,9 +378,11 @@ export default function Profile() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {commentedIssues.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">
-                      No commented issues
-                    </p>
+                    <div className="text-center py-8 text-muted-foreground">
+                      <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p>You haven't commented on any issues yet</p>
+                      <p className="text-sm mt-1 text-muted-foreground/70">Join the conversation on issues you care about</p>
+                    </div>
                   ) : (
                     commentedIssues.map(issue => (
                       <IssueListItem key={issue.id} issue={issue} />
@@ -397,9 +402,10 @@ export default function Profile() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {reportedIssues.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">
-                      No reported issues
-                    </p>
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Flag className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p>You haven't reported any issues</p>
+                    </div>
                   ) : (
                     reportedIssues.map(issue => (
                       <IssueListItem key={issue.id} issue={issue} />
@@ -419,9 +425,11 @@ export default function Profile() {
                 </CardHeader>
                 <CardContent>
                   {userMedia.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">
-                      No media shared yet
-                    </p>
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Image className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p>No media shared yet</p>
+                      <p className="text-sm mt-1 text-muted-foreground/70">Attach photos or videos when reporting issues</p>
+                    </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                       {userMedia.map((media, idx) => (

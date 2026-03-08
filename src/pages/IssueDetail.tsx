@@ -56,10 +56,19 @@ export default function IssueDetail() {
 
   if (!issue) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="glass-card p-8 text-center">
-          <p className="text-muted-foreground mb-4">Issue not found</p>
-          <Button onClick={() => navigate('/feed')}>Back to Feed</Button>
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <Card className="glass-card max-w-md w-full">
+          <CardContent className="p-8 text-center">
+            <FileWarning className="h-16 w-16 mx-auto mb-4 text-muted-foreground/40" />
+            <h2 className="text-xl font-semibold mb-2">Issue Not Found</h2>
+            <p className="text-muted-foreground text-sm mb-6">
+              This issue may have been deleted or doesn't exist.
+            </p>
+            <Button onClick={() => navigate('/feed')} className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Feed
+            </Button>
+          </CardContent>
         </Card>
       </div>
     );

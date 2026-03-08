@@ -113,7 +113,7 @@ export default function StudentFeed() {
   const [showLogoutWarning, setShowLogoutWarning] = useState(false);
   const [activeTab, setActiveTab] = useState('feed');
   const [currentPage, setCurrentPage] = useState(1);
-
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const unreadNotifications = notifications.filter(n => n.userId === user?.id && !n.isRead).length;
 
   // Reset page on filter/tab changes

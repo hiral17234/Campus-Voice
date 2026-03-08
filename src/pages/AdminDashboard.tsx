@@ -460,8 +460,7 @@ export default function AdminDashboard() {
                       <CardTitle>
                         {activeTab === 'reported' ? 'Reported Issues' : activeTab === 'deleted' ? 'Deleted Issues' : activeTab === 'falsely_accused' ? 'Falsely Accused Issues' : activeTab === 'appeals' ? 'Account Appeals' : 'All Issues'}
                       </CardTitle>
-                      <div className="flex flex-wrap gap-2">
-                        <div className="relative flex-1 min-w-[200px]">
+                      <div className="relative flex-1 min-w-[200px]">
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             placeholder="Search issues..."
@@ -470,51 +469,73 @@ export default function AdminDashboard() {
                             className="pl-10"
                           />
                         </div>
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
-                          <SelectTrigger className="w-32">
-                            <SelectValue placeholder="Status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Status</SelectItem>
-                            {Object.entries(STATUS_LABELS).map(([key, label]) => (
-                              <SelectItem key={key} value={key}>{label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                          <SelectTrigger className="w-32">
-                            <SelectValue placeholder="Category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Categories</SelectItem>
-                            {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-                              <SelectItem key={key} value={key}>{label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                          <SelectTrigger className="w-32">
-                            <SelectValue placeholder="Priority" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Priority</SelectItem>
-                            {Object.entries(PRIORITY_LABELS).map(([key, label]) => (
-                              <SelectItem key={key} value={key}>{label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-                          <SelectTrigger className="w-32">
-                            <ArrowUpDown className="h-4 w-4 mr-2" />
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="newest">Newest</SelectItem>
-                            <SelectItem value="oldest">Oldest</SelectItem>
-                            <SelectItem value="popular">Popular</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+
+                        {/* Mobile: collapsible filter toggle */}
+                        {isMobile && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowFilters(!showFilters)}
+                            className="flex items-center gap-1.5 h-9"
+                          >
+                            <SlidersHorizontal className="h-4 w-4" />
+                            Filters
+                            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+                            {(statusFilter !== 'all' || categoryFilter !== 'all' || priorityFilter !== 'all') && (
+                              <span className="w-2 h-2 rounded-full bg-primary" />
+                            )}
+                          </Button>
+                        )}
+
+                        {/* Filters: always visible on desktop, collapsible on mobile */}
+                        {(!isMobile || showFilters) && (
+                          <div className={`flex gap-2 ${isMobile ? 'flex-col w-full' : 'flex-wrap'}`}>
+                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                              <SelectTrigger className={isMobile ? 'w-full' : 'w-32'}>
+                                <SelectValue placeholder="Status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All Status</SelectItem>
+                                {Object.entries(STATUS_LABELS).map(([key, label]) => (
+                                  <SelectItem key={key} value={key}>{label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                              <SelectTrigger className={isMobile ? 'w-full' : 'w-32'}>
+                                <SelectValue placeholder="Category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All Categories</SelectItem>
+                                {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+                                  <SelectItem key={key} value={key}>{label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                              <SelectTrigger className={isMobile ? 'w-full' : 'w-32'}>
+                                <SelectValue placeholder="Priority" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All Priority</SelectItem>
+                                {Object.entries(PRIORITY_LABELS).map(([key, label]) => (
+                                  <SelectItem key={key} value={key}>{label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+                              <SelectTrigger className={isMobile ? 'w-full' : 'w-32'}>
+                                <ArrowUpDown className="h-4 w-4 mr-2" />
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="newest">Newest</SelectItem>
+                                <SelectItem value="oldest">Oldest</SelectItem>
+                                <SelectItem value="popular">Popular</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
                     </div>
                   </CardHeader>
                   <CardContent>

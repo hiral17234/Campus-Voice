@@ -348,10 +348,28 @@ export default function IssueDetail() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Reply indicator */}
+                  {replyingTo && (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/80 text-sm">
+                      <Reply className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-muted-foreground">Replying to</span>
+                      <span className="font-medium">@{replyingTo.nickname}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 w-5 p-0 ml-auto text-muted-foreground hover:text-foreground"
+                        onClick={() => setReplyingTo(null)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+
                   {/* Add Comment */}
                   <div className="flex gap-3">
                     <Textarea
-                      placeholder="Add a comment..."
+                      ref={commentInputRef}
+                      placeholder={replyingTo ? `Reply to @${replyingTo.nickname}...` : "Add a comment..."}
                       value={newComment}
                       onChange={(e) => setNewComment(e.target.value)}
                       rows={3}
@@ -374,38 +392,113 @@ export default function IssueDetail() {
                     </p>
                   ) : (
                     <div className="space-y-4">
-                      {issueComments.map((comment) => {
+                      {groupedComments.topLevel.map((comment) => {
                         const hasReportedComment = user && comment.reports?.some(r => r.reporterId === user.id);
+                        const replies = groupedComments.replyMap[comment.id] || [];
                         return (
-                          <div key={comment.id} className={`p-4 rounded-lg ${comment.isAdminResponse ? 'bg-primary/10 border border-primary/20' : 'bg-muted/50'}`}>
-                            <div className="flex items-center justify-between gap-2 mb-2">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-medium text-sm">{comment.authorNickname}</span>
-                                {comment.isAdminResponse && (
-                                  <Badge variant="default" className="text-xs flex items-center gap-1">
-                                    <Shield className="h-3 w-3" />
-                                    Official Response
+                          <div key={comment.id}>
+                            {/* Parent comment */}
+                            <div className={`p-4 rounded-lg ${comment.isAdminResponse ? 'bg-primary/10 border border-primary/20' : 'bg-muted/50'}`}>
+                              <div className="flex items-center justify-between gap-2 mb-2">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-medium text-sm">{comment.authorNickname}</span>
+                                  {comment.isAdminResponse && (
+                                    <Badge variant="default" className="text-xs flex items-center gap-1">
+                                      <Shield className="h-3 w-3" />
+                                      Official Response
+                                    </Badge>
+                                  )}
+                                  <Badge variant="outline" className="text-xs">
+                                    {comment.isAdminResponse ? 'Faculty' : 'Student'}
                                   </Badge>
-                                )}
-                                <Badge variant="outline" className="text-xs">
-                                  {comment.isAdminResponse ? 'Faculty' : 'Student'}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">
-                                  {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
-                                </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  {user && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+                                      onClick={() => handleReply(comment.id, comment.authorNickname)}
+                                    >
+                                      <Reply className="h-3 w-3" />
+                                      Reply
+                                    </Button>
+                                  )}
+                                  {!hasReportedComment && user && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                      onClick={() => setReportingCommentId(comment.id)}
+                                    >
+                                      <Flag className="h-3 w-3" />
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
-                              {!hasReportedComment && user && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 w-6 p-0 text-muted-foreground hover:text-red-500"
-                                  onClick={() => setReportingCommentId(comment.id)}
-                                >
-                                  <Flag className="h-3 w-3" />
-                                </Button>
-                              )}
+                              <p className="text-sm">{comment.content}</p>
                             </div>
-                            <p className="text-sm">{comment.content}</p>
+
+                            {/* Nested replies */}
+                            {replies.length > 0 && (
+                              <div className="ml-6 mt-2 space-y-2 border-l-2 border-border pl-4">
+                                {replies.map((reply) => {
+                                  const hasReportedReply = user && reply.reports?.some(r => r.reporterId === user.id);
+                                  return (
+                                    <div key={reply.id} className={`p-3 rounded-lg ${reply.isAdminResponse ? 'bg-primary/10 border border-primary/20' : 'bg-muted/30'}`}>
+                                      <div className="flex items-center justify-between gap-2 mb-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <span className="font-medium text-sm">{reply.authorNickname}</span>
+                                          {reply.isAdminResponse && (
+                                            <Badge variant="default" className="text-xs flex items-center gap-1">
+                                              <Shield className="h-3 w-3" />
+                                              Official
+                                            </Badge>
+                                          )}
+                                          <Badge variant="outline" className="text-xs">
+                                            {reply.isAdminResponse ? 'Faculty' : 'Student'}
+                                          </Badge>
+                                          <span className="text-xs text-muted-foreground">
+                                            {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          {user && (
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+                                              onClick={() => handleReply(reply.id, reply.authorNickname)}
+                                            >
+                                              <Reply className="h-3 w-3" />
+                                            </Button>
+                                          )}
+                                          {!hasReportedReply && user && (
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                                              onClick={() => setReportingCommentId(reply.id)}
+                                            >
+                                              <Flag className="h-3 w-3" />
+                                            </Button>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <p className="text-sm">
+                                        {(reply as any).replyToNickname && (
+                                          <span className="text-primary font-medium">@{(reply as any).replyToNickname} </span>
+                                        )}
+                                        {reply.content}
+                                      </p>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         );
                       })}

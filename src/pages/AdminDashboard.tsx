@@ -632,25 +632,26 @@ export default function AdminDashboard() {
                           </div>
                         ) : (
                           <>
-                          {paginatedIssues.map((issue, index) => (
-                            <AdminIssueCard
-                              key={issue.id}
-                              issue={issue}
-                              activeTab={activeTab as 'all' | 'reported' | 'deleted' | 'falsely_accused'}
-                              onStatusChange={(issue) => {
-                                setSelectedIssue(issue);
-                                setShowStatusModal(true);
-                              }}
-                              onPriorityChange={handlePriorityChange}
-                              onDepartmentAssign={handleDepartmentAssign}
-                              onRestore={handleRestoreIssue}
-                              onMarkFalselyAccused={handleMarkFalselyAccused}
-                              index={index}
-                            />
-                          ))
-                          <PaginationControls currentPage={currentPage} totalPages={issuesTotalPages} onPageChange={setCurrentPage} />
+                            {paginatedIssues.map((issue, index) => (
+                              <AdminIssueCard
+                                key={issue.id}
+                                issue={issue}
+                                activeTab={activeTab as 'all' | 'reported' | 'deleted' | 'falsely_accused'}
+                                onStatusChange={(issue) => {
+                                  setSelectedIssue(issue);
+                                  setShowStatusModal(true);
+                                }}
+                                onPriorityChange={handlePriorityChange}
+                                onDepartmentAssign={handleDepartmentAssign}
+                                onRestore={handleRestoreIssue}
+                                onMarkFalselyAccused={handleMarkFalselyAccused}
+                                index={index}
+                              />
+                            ))}
+                            <PaginationControls currentPage={currentPage} totalPages={issuesTotalPages} onPageChange={setCurrentPage} />
                           </>
                         )}
+                      </div>
                     ) : (
                       /* Desktop: Table View */
                       <div className="overflow-x-auto">

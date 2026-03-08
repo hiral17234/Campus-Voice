@@ -802,6 +802,7 @@ export default function AdminDashboard() {
                             )}
                           </TableBody>
                         </Table>
+                        <PaginationControls currentPage={currentPage} totalPages={issuesTotalPages} onPageChange={setCurrentPage} />
                       </div>
                     )}
                   </CardContent>

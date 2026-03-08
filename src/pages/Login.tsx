@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { toast } from 'sonner';
-import { Shield, Users, Lock, Mail, Eye, EyeOff, RefreshCw, User, Check, X, Loader2 } from 'lucide-react';
+import { Shield, Users, Lock, Mail, Eye, EyeOff, RefreshCw, User, X, Loader2 } from 'lucide-react';
 import { UserRole, generateNickname } from '@/types';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 
@@ -60,6 +60,9 @@ export default function Login() {
       try {
         const available = await checkNicknameAvailable(nickname);
         setNicknameAvailable(available);
+        if (!available) {
+          toast.error('This nickname is already taken. Please choose another.');
+        }
       } catch (error) {
         console.error('Error checking nickname:', error);
         setNicknameAvailable(null);
@@ -215,8 +218,6 @@ export default function Login() {
                           <div className="absolute right-3 top-1/2 -translate-y-1/2">
                             {isCheckingNickname ? (
                               <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
-                            ) : nicknameAvailable === true ? (
-                              <Check className="h-4 w-4 text-green-500" />
                             ) : nicknameAvailable === false ? (
                               <X className="h-4 w-4 text-destructive" />
                             ) : null}
@@ -233,12 +234,6 @@ export default function Login() {
                         <RefreshCw className="h-4 w-4" />
                       </Button>
                     </div>
-                    {nicknameAvailable === false && (
-                      <p className="text-xs text-destructive">This name is already taken</p>
-                    )}
-                    {nicknameAvailable === true && (
-                      <p className="text-xs text-green-600 dark:text-green-400">Name is available!</p>
-                    )}
                   </motion.div>
                 )}
               </AnimatePresence>

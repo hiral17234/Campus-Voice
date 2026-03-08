@@ -1,14 +1,87 @@
 
+# Mobile-Friendly Admin Dashboard Issues View
 
-## Plan: Replace Inline Nickname Text with Toast
+## Problem
+The Faculty Dashboard's issues table requires horizontal scrolling on mobile to see category, status, priority, votes, and action buttons. This creates a poor user experience on phones.
 
-### Changes in `src/pages/Login.tsx`
+## Solution
+Create a responsive layout that shows:
+- **Desktop (md and above)**: Keep the current table layout
+- **Mobile (below md)**: Show compact issue cards that expand on tap to reveal all details
 
-1. **Remove inline text** (lines 236-241): Delete both the "This name is already taken" and "Name is available!" paragraph elements
+## Implementation Details
 
-2. **Remove green check icon** (lines 218-219): Remove the `nicknameAvailable === true` check icon — keep only spinner and red X
+### New Component: `AdminIssueCard.tsx`
+A mobile-optimized card component specifically for the admin dashboard that:
 
-3. **Add toast in the availability check effect** (around line 62): When `available === false`, fire `toast.error('This nickname is already taken. Please choose another.')`
+**Collapsed State (default):**
+- Issue title with status indicator icon
+- Location and time (compact)
+- Vote counts inline
+- Visual indicators for reported/official/falsely accused
 
-4. **Remove `Check` from imports** (line 11) since it's no longer used
+**Expanded State (on tap):**
+- Full badges row: Category, Status, Priority
+- Department assignment dropdown
+- Report count (if applicable)
+- Action buttons: View, Change Status, Restore/Verify
 
+###Also fix the things of falsely accoused and appeals like how they should work in real 
+
+### Visual Layout
+
+**Collapsed Card:**
+```text
++------------------------------------------+
+| [Flag] Issue Title Here...        ↑5 ↓2  |
+| 📍 Library · 2 hours ago                 |
++------------------------------------------+
+```
+
+**Expanded Card (after tap):**
+```text
++------------------------------------------+
+| [Flag] Issue Title Here...        ↑5 ↓2  |
+| 📍 Library · 2 hours ago                 |
+|------------------------------------------|
+| [Infrastructure] [Pending] [High]        |
+|                                          |
+| Department: [Select dropdown      ▼]     |
+| Reports: 5 reports                       |
+|                                          |
+| [👁 View]  [↻ Status]  [✓ Verify]       |
++------------------------------------------+
+```
+
+### Files to Modify
+
+**1. Create `src/components/AdminIssueCard.tsx`**
+- New component for mobile issue display
+- Uses Framer Motion for smooth expand/collapse animation
+- Includes all admin actions (status change, priority, department)
+- Shows different action buttons based on tab (all/reported/deleted/falsely_accused)
+
+**2. Update `src/pages/AdminDashboard.tsx`**
+- Import `useIsMobile` hook
+- Import new `AdminIssueCard` component
+- Conditionally render:
+  - Table layout when `!isMobile`
+  - Card list when `isMobile`
+- Keep all existing functionality and filters working
+
+### Animation Behavior
+- **Expand**: 300ms ease-out, height auto-animate
+- **Chevron icon**: Rotates 180 degrees when expanded
+- **Staggered entry**: Cards animate in sequence on initial load
+
+### Mobile-Specific Features
+- Larger touch targets for action buttons (min 44px)
+- Full-width dropdowns for priority/department selection
+- Swipe-friendly card spacing
+- Sticky header remains for filters access
+
+### Technical Notes
+- Use `AnimatePresence` for smooth enter/exit of expanded content
+- Use `motion.div` with `layout` prop for height animation
+- Reuse existing badge components (StatusBadge, CategoryBadge, PriorityBadge)
+- All existing handlers work unchanged (handlePriorityChange, handleDepartmentAssign, etc.)

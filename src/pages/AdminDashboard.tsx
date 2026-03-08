@@ -648,8 +648,9 @@ export default function AdminDashboard() {
                               index={index}
                             />
                           ))
+                          <PaginationControls currentPage={currentPage} totalPages={issuesTotalPages} onPageChange={setCurrentPage} />
+                          </>
                         )}
-                      </div>
                     ) : (
                       /* Desktop: Table View */
                       <div className="overflow-x-auto">

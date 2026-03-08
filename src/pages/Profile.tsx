@@ -402,9 +402,10 @@ export default function Profile() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {reportedIssues.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">
-                      No reported issues
-                    </p>
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Flag className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p>You haven't reported any issues</p>
+                    </div>
                   ) : (
                     reportedIssues.map(issue => (
                       <IssueListItem key={issue.id} issue={issue} />

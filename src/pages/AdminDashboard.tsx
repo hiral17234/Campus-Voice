@@ -545,11 +545,11 @@ export default function AdminDashboard() {
                         {activeTab === 'reported' ? 'Reported Issues' : activeTab === 'deleted' ? 'Deleted Issues' : activeTab === 'falsely_accused' ? 'Falsely Accused Issues' : activeTab === 'appeals' ? 'Account Appeals' : 'All Issues'}
                       </CardTitle>
                       <div className="relative flex-1 min-w-[200px]">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             placeholder="Search issues..."
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => handleSearchChange(e.target.value)}
                             className="pl-10"
                           />
                         </div>

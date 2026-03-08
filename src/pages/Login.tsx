@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { toast } from 'sonner';
-import { Shield, Users, Lock, Mail, Eye, EyeOff, RefreshCw, User, Check, X, Loader2 } from 'lucide-react';
+import { Shield, Users, Lock, Mail, Eye, EyeOff, RefreshCw, User, X, Loader2 } from 'lucide-react';
 import { UserRole, generateNickname } from '@/types';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 

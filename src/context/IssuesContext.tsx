@@ -745,7 +745,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/* ================= HOOK ================= */
+/* ================= HOOK =================  */
 
 export function useIssues() {
   const ctx = useContext(IssuesContext);

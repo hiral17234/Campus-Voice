@@ -307,6 +307,11 @@ export default function AdminDashboard() {
     return filtered;
   }, [issues, reportedIssues, deletedIssues, falselyAccusedIssues, activeTab, searchQuery, statusFilter, categoryFilter, priorityFilter, sortBy]);
 
+  const issuesTotalPages = Math.max(1, Math.ceil(filteredIssues.length / ITEMS_PER_PAGE));
+  const paginatedIssues = filteredIssues.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const appealsTotalPages = Math.max(1, Math.ceil(appeals.length / ITEMS_PER_PAGE));
+  const paginatedAppeals = appeals.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
   const handleLogout = async () => {
     await logout();
     navigate('/');

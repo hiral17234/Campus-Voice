@@ -19,7 +19,7 @@ export default function Login() {
   const [adminPassword, setAdminPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [nickname, setNickname] = useState('');
+  const [nickname, setNickname] = useState(generateNickname());
   const [isCheckingNickname, setIsCheckingNickname] = useState(false);
   const [nicknameAvailable, setNicknameAvailable] = useState<boolean | null>(null);
   const {
@@ -44,9 +44,6 @@ export default function Login() {
 }, [isAuthReady, isAuthenticated, user, navigate]);
 
   // Generate initial nickname
-  useEffect(() => {
-    setNickname(generateNickname());
-  }, []);
 
   // Check nickname availability with debounce
   useEffect(() => {
@@ -209,7 +206,7 @@ export default function Login() {
                           placeholder="Choose your anonymous name"
                           value={nickname}
                           onChange={(e) => setNickname(e.target.value)}
-                          className="pl-10 pr-10"
+                          className="pl-10 pr-8"
                           required
                           minLength={3}
                           maxLength={20}

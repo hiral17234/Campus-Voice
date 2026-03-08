@@ -36,7 +36,9 @@ import {
   Info,
   Building2,
   Image,
-  FileWarning
+  FileWarning,
+  Reply,
+  X
 } from 'lucide-react';
 import campusVoiceLogo from '@/assets/campusvoice-logo.png';
 

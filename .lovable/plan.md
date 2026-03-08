@@ -1,87 +1,28 @@
 
-# Mobile-Friendly Admin Dashboard Issues View
 
-## Problem
-The Faculty Dashboard's issues table requires horizontal scrolling on mobile to see category, status, priority, votes, and action buttons. This creates a poor user experience on phones.
+## Plan: Polish Light Mode Theme
 
-## Solution
-Create a responsive layout that shows:
-- **Desktop (md and above)**: Keep the current table layout
-- **Mobile (below md)**: Show compact issue cards that expand on tap to reveal all details
+The current light mode uses plain white backgrounds with minimal visual depth, making it feel flat and unfinished compared to dark mode. The fix is to add subtle warmth, texture, and depth to the light theme through CSS variable adjustments and a few utility class updates.
 
-## Implementation Details
+### Changes
 
-### New Component: `AdminIssueCard.tsx`
-A mobile-optimized card component specifically for the admin dashboard that:
+**1. `src/index.css` — Light mode CSS variables**
+- Change `--background` from near-white (`210 20% 98%`) to a warm off-white with a slight cream/warm gray tint (`40 20% 97%`)
+- Change `--card` from pure white to a slightly warmer white (`40 10% 99%`)
+- Change `--muted` to a warmer tone (`40 15% 93%`)
+- Add a subtle warm tint to `--border` (`40 10% 88%`) so borders feel softer
+- Adjust `--popover` similarly to match card warmth
+- Add a subtle body background pattern or gradient using a new utility
 
-**Collapsed State (default):**
-- Issue title with status indicator icon
-- Location and time (compact)
-- Vote counts inline
-- Visual indicators for reported/official/falsely accused
+**2. `src/index.css` — Add light mode background texture**
+- Add a very subtle radial gradient or dot pattern to the `body` in light mode only, giving it visual depth without being distracting (e.g., a faint warm gradient from top-left)
 
-**Expanded State (on tap):**
-- Full badges row: Category, Status, Priority
-- Department assignment dropdown
-- Report count (if applicable)
-- Action buttons: View, Change Status, Restore/Verify
+**3. `src/index.css` — Improve `glass-card` for light mode**
+- Update the `.glass-card` utility to have a slightly more visible frosted effect in light mode: stronger `backdrop-blur`, a subtle warm `box-shadow`, and a faint border highlight
 
-###Also fix the things of falsely accoused and appeals like how they should work in real 
+**4. `src/pages/StudentFeed.tsx` — Header refinement**
+- Add a subtle bottom shadow to the sticky header in light mode for better visual separation (via a class tweak on the header element)
 
-### Visual Layout
+### Summary
+All changes are CSS-level. No structural or logic changes. The goal is to make light mode feel warm, layered, and polished — matching the civic/professional design language already established in dark mode.
 
-**Collapsed Card:**
-```text
-+------------------------------------------+
-| [Flag] Issue Title Here...        ↑5 ↓2  |
-| 📍 Library · 2 hours ago                 |
-+------------------------------------------+
-```
-
-**Expanded Card (after tap):**
-```text
-+------------------------------------------+
-| [Flag] Issue Title Here...        ↑5 ↓2  |
-| 📍 Library · 2 hours ago                 |
-|------------------------------------------|
-| [Infrastructure] [Pending] [High]        |
-|                                          |
-| Department: [Select dropdown      ▼]     |
-| Reports: 5 reports                       |
-|                                          |
-| [👁 View]  [↻ Status]  [✓ Verify]       |
-+------------------------------------------+
-```
-
-### Files to Modify
-
-**1. Create `src/components/AdminIssueCard.tsx`**
-- New component for mobile issue display
-- Uses Framer Motion for smooth expand/collapse animation
-- Includes all admin actions (status change, priority, department)
-- Shows different action buttons based on tab (all/reported/deleted/falsely_accused)
-
-**2. Update `src/pages/AdminDashboard.tsx`**
-- Import `useIsMobile` hook
-- Import new `AdminIssueCard` component
-- Conditionally render:
-  - Table layout when `!isMobile`
-  - Card list when `isMobile`
-- Keep all existing functionality and filters working
-
-### Animation Behavior
-- **Expand**: 300ms ease-out, height auto-animate
-- **Chevron icon**: Rotates 180 degrees when expanded
-- **Staggered entry**: Cards animate in sequence on initial load
-
-### Mobile-Specific Features
-- Larger touch targets for action buttons (min 44px)
-- Full-width dropdowns for priority/department selection
-- Swipe-friendly card spacing
-- Sticky header remains for filters access
-
-### Technical Notes
-- Use `AnimatePresence` for smooth enter/exit of expanded content
-- Use `motion.div` with `layout` prop for height animation
-- Reuse existing badge components (StatusBadge, CategoryBadge, PriorityBadge)
-- All existing handlers work unchanged (handlePriorityChange, handleDepartmentAssign, etc.)

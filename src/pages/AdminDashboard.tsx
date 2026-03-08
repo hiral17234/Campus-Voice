@@ -574,7 +574,7 @@ export default function AdminDashboard() {
                         {/* Filters: always visible on desktop, collapsible on mobile */}
                         {(!isMobile || showFilters) && (
                           <div className={`flex gap-2 ${isMobile ? 'flex-col w-full' : 'flex-wrap'}`}>
-                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
                               <SelectTrigger className={isMobile ? 'w-full' : 'w-32'}>
                                 <SelectValue placeholder="Status" />
                               </SelectTrigger>
